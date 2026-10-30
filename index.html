@@ -291,6 +291,99 @@ function scrubAt(x0,y0,x1,y1){
   dc.globalCompositeOperation='source-over';
 }
 
+/* ---------- customer looks (archetypes) ---------- */
+const LOOKS=[
+  {id:'milk',n:'奶黄蛙',w:2,pal:null,names:['阿呱','呱子','绿豆','跳跳','呱太郎'],acc:['towel','towel',null],feat:[],traits:['rush','cold'],kind:null,lines:['泥塘里泡久了，脚都不是自己的了。','先泡个脚，再给我捏捏。']},
+  {id:'grandpa',n:'老蛙爷',w:1,pal:{h:96,s:.6,v:.82},names:['蛙大爷','老蛙头','田鸡王'],acc:[null,'towel'],feat:['mustache','glasses','spots'],traits:['cold','picky','insomnia'],kind:'slim',lines:['年轻人，手脚轻点。','我这双老脚走了一辈子泥路咯。']},
+  {id:'girl',n:'时髦蛙妹',w:1,pal:{h:338,s:.5,v:1},names:['蛙小美','莲蓬','荷叶仙'],acc:[null],feat:['lashes','flower','freckles'],traits:['picky','scald','ticklish'],kind:'slim',lines:['姐妹推荐的，弄好看点哦。','拍照发朋友圈的，别弄砸了。']},
+  {id:'boss',n:'土豪蛙',w:1,pal:{h:30,s:1.15,v:.9},names:['金蟾哥','呱老板','王老呱'],acc:['shades'],feat:['chain'],traits:['rich','rush'],kind:'round',lines:['钱不是问题，弄舒服了。','我时间很贵的，抓紧。']},
+  {id:'student',n:'学生蛙',w:1,pal:{h:198,s:.55,v:1},names:['小青','跳跳','呱学霸'],acc:[null],feat:['glasses','bigEyes'],traits:['rush','chatty','ticklish'],kind:'slim',lines:['第一次来，有学生价吗？','考完试了，犒劳一下自己。']},
+  {id:'worker',n:'泥塘工蛙',w:1,pal:{h:72,s:.85,v:.72},names:['泥鳅哥','壮呱','老铁蛙'],acc:['towel','towel'],feat:['spots','freckles'],traits:['sweaty','cold'],kind:'round',lines:['干了一天活，脚都结泥壳了。','使劲搓，我不怕疼。']},
+  {id:'auntie',n:'广场舞蛙姨',w:1,pal:{h:272,s:.42,v:.98},names:['呱呱姐','王阿姨','荷花婶'],acc:[null],feat:['curlers','lashes'],traits:['chatty','scald','insomnia'],kind:'round',lines:['跳了一晚上舞，脚酸死了。','小伙子，跟阿姨聊聊天呗。']}
+];
+function pickLook(){const tot=LOOKS.reduce((a,l)=>a+l.w,0);let r=Math.random()*tot;for(const l of LOOKS){r-=l.w;if(r<=0)return l;}return LOOKS[0];}
+const SPOTS=[[700,662,24],[1192,668,22],[560,980,34],[1330,990,30],[420,1170,22],[1470,1170,20],[600,1350,30],[1290,1330,28],[1200,1720,30],[1160,1900,22]];
+function rgb2hsv(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}return[h,mx?d/mx:0,mx];}
+function hsv2rgb(h,s,v){h=((h%360)+360)%360;const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;let r,g,b;if(h<60)[r,g,b]=[c,x,0];else if(h<120)[r,g,b]=[x,c,0];else if(h<180)[r,g,b]=[0,c,x];else if(h<240)[r,g,b]=[0,x,c];else if(h<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];return[(r+m)*255,(g+m)*255,(b+m)*255];}
+const RC={};
+function recolor(img,pal,foot,key,spots){
+  if(!img)return img;if(RC[key])return RC[key];
+  const cw=document.createElement('canvas');cw.width=img.naturalWidth||img.width;cw.height=img.naturalHeight||img.height;
+  const x=cw.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0);
+  if(pal){try{const im=x.getImageData(0,0,cw.width,cw.height),d=im.data;
+    for(let i=0;i<d.length;i+=4){if(d[i+3]<8)continue;const hsv=rgb2hsv(d[i],d[i+1],d[i+2]),h=hsv[0],s=hsv[1],v=hsv[2];
+      const skin=foot?(h>=28&&h<=66&&s>.1&&v>.6):(h>=32&&h<=64&&s>.33&&v>.55);if(!skin)continue;
+      const c=hsv2rgb(pal.h+(h-48),Math.min(1,s*pal.s),Math.min(1,v*pal.v));d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];}
+    x.putImageData(im,0,0);}catch(e){}}
+  if(spots){x.globalCompositeOperation='source-atop';x.fillStyle='rgba(55,35,15,.24)';for(const [sx,sy,sr] of SPOTS){x.beginPath();x.ellipse((sx-271)*.6,(sy-611)*.6,sr*.6,sr*.48,.3,0,TAU);x.fill();}}
+  return RC[key]=cw;
+}
+function partialClean(level){
+  dc.setTransform(1,0,0,1,0,0);dc.globalCompositeOperation='destination-out';
+  dc.fillStyle=`rgba(0,0,0,${(1-level)*.85})`;dc.fillRect(0,0,D.width,D.height);
+  dc.globalCompositeOperation='source-over';dirtInit=Math.max(1,countDirt());
+}
+
+/* ---------- QTE ---------- */
+let Q=null;
+const QTE_KINDS={
+  sneeze:{d:1,label:'客人要打喷嚏了！快点他鼻子递纸巾',short:'点！',time:1.7,taps:1},
+  fly:{d:1,label:'苍蝇落在脚上了！快拍走',short:'拍！',time:1.8,taps:1},
+  cramp:{d:2,label:'脚抽筋了！连点揉开',short:'',time:2.4,taps:6},
+  slip:{d:4,label:'脚要滑下去了！按住撑住它',short:'按住！',time:2.2,hold:1}
+};
+const qteMax=d=>d<=2?1:d<=5?2:3;
+function qPos(){return Q.foot?[Q.x+FO.x,Q.y+FO.y]:[Q.x,Q.y+R.jy];}
+function startQTE(){
+  const ks=Object.keys(QTE_KINDS).filter(k=>QTE_KINDS[k].d<=S.day),k=pick(ks),df=QTE_KINDS[k];
+  let x=150,y=270,foot=true;
+  if(k==='sneeze'){x=MV[0];y=MV[1]-16;foot=false;}
+  else if(k==='fly'){const sp=footSpots(1,10,180,330)[0]||{x:150,y:260};x=sp.x;y=sp.y;}
+  else if(k==='slip'){x=156;y=300;}
+  Q={k,x,y,foot,t:df.time,max:df.time,need:df.taps||0,got:0,hold:!!df.hold,hf:0,holding:false,label:df.label,short:df.short};
+  C.qtes++;sfx.bad();tone(880,1320,.12,'square',.05,.1);
+  if(k==='sneeze'){say('阿……阿……');setFace('ouch',df.time);}
+  else if(k==='cramp'){say('哎哟！抽筋了抽筋了！');setFace('ouch',df.time);}
+  else if(k==='slip'){say('哎哎，脚要滑了！');}
+  else say('有苍蝇！');
+}
+function qteHit(){
+  if(!Q)return;
+  if(Q.hold){Q.holding=true;return;}
+  Q.got++;sfx.tap();const [x,y]=qPos();
+  if(Q.need>1)addFT('揉',x+(Math.random()-.5)*30,y-24,'#ffffff',14,1);
+  if(Q.got>=Q.need)qteEnd(true);
+}
+function qteEnd(win){
+  if(!Q)return;const k=Q.k,[x,y]=qPos();Q=null;
+  if(win){C.pat=Math.min(100,C.pat+6);C.qteTip+=4;sfx.coin();addFT('反应真快 +¥4',x,y-30,'#f5c95c',17,1);setFace('happy',1.2);
+    say({sneeze:'阿——嚏！谢谢，好险没喷你身上。',fly:'哎，好险好险。',cramp:'呼……不抽了，谢谢。',slip:'稳住了，手劲不错。'}[k]);
+    if(k==='fly')for(let i=0;i<5;i++)PS.push({k:'spark',s:1,x,y,vx:(Math.random()-.5)*120,vy:-60-Math.random()*60,life:.6,max:.6,r:3,c:'#ffffff'});}
+  else{C.pat-=8;sfx.bad();shake=.4;
+    if(k==='sneeze'){setFace('ouch',1);say('阿——嚏！！……不好意思。');for(let i=0;i<14;i++)PS.push({k:'foam',s:1,x:MV[0],y:MV[1],vx:(Math.random()-.5)*260,vy:40+Math.random()*120,life:.9,max:.9,r:2+Math.random()*4});}
+    else if(k==='fly'){R.fly={t:2.6,x,y,fx:x,fy:y};say('……算了，我自己吃了。');}
+    else if(k==='cramp'){setFace('ouch',1.2);C.pat-=4;say('疼死我了！');}
+    else{kick=1;setFace('angry',1);say('哎哟，你怎么不扶一下！');}
+    addFT('没接住',x,y-30,'#ff8a80',17,1);}
+}
+function drawQTE(c,t){
+  const [x,y]=qPos(),k=Q.t/Q.max;
+  c.save();
+  c.fillStyle='rgba(22,40,36,.82)';c.beginPath();c.roundRect(20,8,320,26,13);c.fill();
+  c.font=`14px ${DISPLAY}`;c.textAlign='center';c.fillStyle=k<.35?'#ff9a8a':'#ffe08a';c.fillText('突发！'+Q.label,180,26);
+  const pr=26+3*Math.sin(t*14);
+  c.fillStyle='rgba(255,255,255,.18)';circ(c,x,y,pr);
+  c.strokeStyle='rgba(255,255,255,.95)';c.lineWidth=3;c.beginPath();c.arc(x,y,pr,0,TAU);c.stroke();
+  c.strokeStyle=k<.35?'#ff5c5c':'#f5c95c';c.lineWidth=5;c.beginPath();c.arc(x,y,pr+7,-Math.PI/2,-Math.PI/2+TAU*k);c.stroke();
+  if(Q.k==='fly')flyAt(c,x,y,t);
+  if(Q.k==='cramp'){c.strokeStyle='#ff6b5c';c.lineWidth=3;for(let i=0;i<3;i++){c.beginPath();for(let j=0;j<5;j++)c.lineTo(x-14+j*7,y-8+i*8+(j%2?-4:4));c.stroke();}}
+  if(Q.k==='slip'){c.fillStyle='#ffe08a';c.beginPath();c.moveTo(x-9,y-6);c.lineTo(x+9,y-6);c.lineTo(x,y+10);c.closePath();c.fill();
+    if(Q.holding){c.strokeStyle='#7ee08a';c.lineWidth=6;c.beginPath();c.arc(x,y,pr-8,-Math.PI/2,-Math.PI/2+TAU*Q.hf);c.stroke();}}
+  const lab=Q.need>1?`连点 ${Q.got}/${Q.need}`:Q.holding?'撑住…':Q.short;
+  c.font=`16px ${DISPLAY}`;c.lineWidth=4;c.strokeStyle='rgba(30,20,10,.85)';c.strokeText(lab,x,y-pr-12);c.fillStyle='#fff';c.fillText(lab,x,y-pr-12);
+  c.restore();
+}
+
 /* ---------- state ---------- */
 const KINDS={
   round:{n:'圆滚滚',sx:1.06,sy:.98,pat:.88,lines:['躺下就不想起来了…','这椅子能再大点吗？呱。']},
@@ -312,6 +405,7 @@ const TRAITS={
   sweaty:{n:'脚汗王',d:'硬泥块特别多',need:'scrub'},
   insomnia:{n:'失眠',d:'按摩时会多按几次失眠点',need:'massage'}
 };
+const TRAIT_DAY={scald:1,cold:1,rush:1,rich:1,chatty:2,sweaty:2,picky:3,insomnia:3,ticklish:4};
 const TRAIT_LINES={scald:'水别太烫啊，我皮薄。',cold:'我这老寒腿，水要烫才舒服。',ticklish:'我脚底特别怕痒，你轻点搓。',rush:'快点快点，我赶时间！',picky:'我可是很挑的，别糊弄我。',chatty:'老板，咱边洗边聊呗？',rich:'弄得好，小费少不了你的。',sweaty:'我这脚汗多，泥都结块了…',insomnia:'最近老失眠，帮我多按按失眠点。'};
 const CHATS=[
   {q:'你说我这脚还有救吗？',a:['包在我身上！','这个……难说。'],g:0},
@@ -324,10 +418,10 @@ const CHATS=[
   {q:'我这脚是不是全荷塘最黑的？',a:['确实最黑','洗完就是最白的'],g:1}
 ];
 const NEWS={
-  1:['先学两门手艺：泡脚、搓泥','单子上写什么就做什么，最后用毛巾结账'],
-  2:['解锁「修脚」：点长指甲剪掉','脚底开始出现难搓的硬泥块'],
-  3:['解锁「足底按摩」：光圈缩到金圈时点穴位','客人开始有性格，单子上会标出来（点标签看说明）'],
-  4:['解锁「蛙趾美甲」','按摩出现「长按」穴位','出现要剪好几下的厚指甲','脚底有了痒痒肉，搓太快客人会蹬你','泡脚时会刮凉风，水温突然下降'],
+  1:['先学两门手艺：泡脚、搓泥，最后用毛巾结账','每位客人长相、颜色、脏的程度都不一样','有的怕烫、有的要烫水，看名字下面的标签','会有突发状况：打喷嚏、苍蝇落脚上，看到闪圈快点'],
+  2:['解锁「修脚」：点长指甲剪掉','硬泥块更常见了','新的突发：脚抽筋，要连点揉开','新性格：话痨、脚汗王'],
+  3:['解锁「足底按摩」：光圈缩到金圈时点穴位','新性格：挑剔、失眠（点标签看说明）','突发状况一位客人最多两次'],
+  4:['解锁「蛙趾美甲」','按摩出现「长按」穴位','出现要剪好几下的厚指甲','脚底有了痒痒肉，搓太快客人会蹬你','泡脚时会刮凉风，水温突然下降','新的突发：脚要滑下去，按住撑住'],
   5:['泡脚可以「加料」，按客人点的放','客人会中途改单：加项目、减项目、换颜色'],
   6:['按摩出现「连点」揉按','修脚时客人会乱动脚','美甲出现撞色、只涂一个'],
   7:['脚跟会长老茧：修脚时按住来回锉平','客人可能同时有两种性格'],
@@ -337,7 +431,7 @@ function cfg(d){
   return{
     count:Math.min(7,2+Math.ceil(d*.6)),
     unlock:ORDER.filter(s=>UNLOCK[s]<=d),
-    traitP:d>=3?Math.min(.9,.35+(d-3)*.12):0,
+    traitP:Math.min(.9,.32+(d-1)*.09),
     twoTraits:d>=7,
     eventP:d>=5?Math.min(.5,.22+(d-5)*.05):0,
     decay:1+d*.07,
@@ -394,27 +488,34 @@ function newCustomer(){
   if(U.includes('paint')&&Math.random()<Math.min(.7,.35+(d-4)*.08))st.push('paint');
   if(st.length<2)st.push('soak');
   const steps=ORDER.filter(s=>st.includes(s));
+  const look=pickLook(),feat=look.feat;
+  const pool=Object.keys(TRAITS).filter(k=>TRAIT_DAY[k]<=d&&(!TRAITS[k].need||steps.includes(TRAITS[k].need)));
   const traits=[];
-  if(Math.random()<K.traitP){
-    const pool=Object.keys(TRAITS).filter(k=>!TRAITS[k].need||steps.includes(TRAITS[k].need));
-    traits.push(pick(pool));
+  if(pool.length&&Math.random()<K.traitP){
+    const pref=look.traits.filter(k=>pool.includes(k));
+    traits.push(pref.length&&Math.random()<.7?pick(pref):pick(pool));
     if(K.twoTraits&&Math.random()<.4){const p2=pool.filter(k=>k!==traits[0]&&TRAITS[k].ex!==traits[0]);if(p2.length)traits.push(pick(p2));}
   }
-  const kid=traits.includes('rush')?'tad':pick(['round','slim','round','slim']);
-  C={name:pick(NAMES),pal:pick(PALS),kind:KINDS[kid],acc:pick(['towel','towel','towel','leaf','shades',null]),chain:Math.random()<.25,tag:10+(Math.random()*89|0),
-    steps,traits,pat:100,q:{},si:0,done:false,evented:false,added:null,
+  const kid=traits.includes('rush')?'tad':look.kind||pick(['round','slim']);
+  C={name:pick(look.names),look,feat,pal:pick(PALS),kind:KINDS[kid],
+    acc:feat.includes('flower')||feat.includes('curlers')?null:pick(look.acc),chain:feat.includes('chain')||Math.random()<.08,eyeK:feat.includes('bigEyes')?1.14:1,
+    tag:10+(Math.random()*89|0),steps,traits,pat:100,q:{},si:0,done:false,evented:false,added:null,
     paint:steps.includes('paint')?genPaint(d):null,
     herb:steps.includes('soak')&&K.herbs&&Math.random()<.6?pick(HERBS):null,
     nails:genNails(d,steps.includes('trim')),lumps:[],tickles:[],callus:null,
-    fast:0,chatTip:0,chats:0,chatT:5+Math.random()*5};
+    fast:0,chatTip:0,chats:0,chatT:5+Math.random()*5,qtes:0,qteT:3+Math.random()*7,qteTip:0};
   C.has=k=>C.traits.includes(k);
+  C.bodyImg=(look.pal||feat.includes('spots'))?recolor(IMG.body,look.pal,false,'b'+look.id,feat.includes('spots')):IMG.body;
+  C.footImg=look.pal?recolor(IMG.fclean,look.pal,true,'f'+look.id):IMG.fclean;
   buildDirt();
+  const lvl=d===1?.45+Math.random()*.5:Math.min(1,.6+Math.random()*.4+d*.015);if(lvl<.97)partialClean(lvl);C.dirt=lvl;
+  const nL=K.lumps||(Math.random()<.4?1:0);
   C.tickles=footSpots((K.tickle?1:0)+(C.has('ticklish')?2:0),17,215,320);
-  C.lumps=footSpots(K.lumps+(C.has('sweaty')?2:0),11,178,345,C.tickles).map(p=>Object.assign(p,{hp:1,seed:Math.random()*10}));
+  C.lumps=footSpots(nL+(C.has('sweaty')?2:0)+(look.id==='worker'?1:0),11,178,345,C.tickles).map(p=>Object.assign(p,{hp:1,seed:Math.random()*10}));
   if(steps.includes('trim')&&Math.random()<K.callus){const v=V(830,1830);C.callus={x:v[0],y:v[1],r:22,hp:1};}
-  M=null;entry=0;bucket=0;wrongCount=0;rushT=8;kick=0;swayAmt=0;PS.length=0;FT.length=0;closeChat();
+  M=null;Q=null;entry=0;bucket=0;wrongCount=0;rushT=8;kick=0;swayAmt=0;PS.length=0;FT.length=0;closeChat();
   face='neutral';faceT=0;R={jy:0,jv:0,tick:0,melt:0,sac:0,sacT:0,arm:0,fly:null,idle:0,land:0};
-  say(traits.length?TRAIT_LINES[traits[0]]:Math.random()<.5?pick(C.kind.lines):pick(LINES.arrive));
+  say(traits.length&&Math.random()<.65?TRAIT_LINES[traits[0]]:lvl<.7?'今天还算干净，随便搓搓就行。':pick(look.lines));
   renderTicket();updateTray();setInstr('看看单子，选第一件工具');progress(null);$('swatches').hidden=true;
   setTimeout(()=>{sfx.croak();R.sacT=.7;},250);
 }
@@ -429,7 +530,7 @@ const baseFace=()=>C&&C.pat<30?'angry':'neutral';
 function hud(){$('dayChip').textContent=`第${S.day}天`;$('coinChip').textContent='¥'+S.coins;if(C)$('custCount').textContent=`${custIdx+1}/${dayCount()} 位 · 今日 ¥${dayEarn}/${dayGoal}`;}
 function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');}
 function renderTicket(){
-  $('cName').innerHTML=C.name+'<small class="kind">'+C.kind.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
+  $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
   const tg=C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
   $('tags').innerHTML=tg;$('tags').hidden=!tg;
   $('chips').innerHTML=C.steps.map((s,i)=>{
@@ -576,9 +677,11 @@ function clawMid(i){const n=C.nails[i],[dx,dy]=toeDir(i),t=TIPS[i];return[t[0]+d
 /* ---------- interactions ---------- */
 function ptOf(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/sc,(e.clientY-r.top-oy)/sc];}
 cv.addEventListener('pointerdown',e=>{
-  ac();if(paused||!C||C.done||!M)return;
+  ac();if(paused||!C||C.done)return;
   try{cv.setPointerCapture(e.pointerId);}catch(_){}
   ptr=ptOf(e);const [x,y]=toFoot(ptr[0],ptr[1]);ptrF=[x,y];
+  if(Q){const qp=qPos();if(Math.hypot(ptr[0]-qp[0],ptr[1]-qp[1])<38){qteHit();return;}}
+  if(!M)return;
   if(M.type==='soak')hold=true;
   else if(M.type==='scrub'){if(kick>.3)return;scrubbing=true;lastP=[x,y];M.lastT=performance.now();scrubAt(x,y,x,y);M.dirty=true;}
   else if(M.type==='trim'){const cl=C.callus;if(cl&&cl.hp>0&&Math.hypot(x-cl.x,y-cl.y)<cl.r+8){M.filing=true;lastP=[x,y];}else tryClip(x,y);}
@@ -620,7 +723,7 @@ function kickFoot(){
   say(pick(['哈哈哈别挠了！','痒死了！你轻点！']));addFT('蹬！',150,200,'#ff8a80',22);
 }
 function holdRelease(){if(M&&M.type==='massage'&&M.holding&&M.hfill<1){const p=M.seq[M.k].p;M.holding=false;C.pat-=3;addFT('力道不够',p.x,p.y-30,'#ff8a80',16);sfx.bad();nextPoint();}}
-const release=()=>{hold=false;scrubbing=false;if(M&&M.type==='trim')M.filing=false;holdRelease();};
+const release=()=>{hold=false;scrubbing=false;if(Q)Q.holding=false;if(M&&M.type==='trim')M.filing=false;holdRelease();};
 cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);cv.addEventListener('pointerleave',()=>{release();ptr=null;ptrF=null;});
 window.addEventListener('keydown',e=>{if(e.code==='Space'&&M&&M.type==='soak'&&!paused){hold=true;e.preventDefault();}});
 window.addEventListener('keyup',e=>{if(e.code==='Space')hold=false;});
@@ -681,7 +784,7 @@ function addFT(t,x,y,c,size,s){FT.push({t,x,y,c,size,s:!!s,life:1.1,max:1.1});}
 /* ---------- checkout / flow ---------- */
 function checkout(angry){
   if(!C||C.done)return;
-  C.done=true;M=null;hold=false;scrubbing=false;$('swatches').hidden=true;closeChat();updateTray();
+  C.done=true;M=null;Q=null;hold=false;scrubbing=false;$('swatches').hidden=true;closeChat();updateTray();
   const k=(1+.12*S.up.deco)*(C.has('picky')?1.3:1);
   const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k):0}));
   let sum=rows.reduce((a,r)=>a+r.amt,0);
@@ -692,7 +795,7 @@ function checkout(angry){
   let tip=0,cut=0;
   if(angry){cut=sum-Math.round(sum*.5);sum-=cut;}
   else if(!undone)tip=Math.round(sum*.3*(C.pat/100)*(1+.15*S.up.aroma)*(stars>=4?1:.5)*(C.has('rich')?2:1));
-  const extras=angry?[]:[['快手奖',C.fast],['聊天小费',C.chatTip]].filter(x=>x[1]>0);
+  const extras=angry?[]:[['快手奖',C.fast],['聊天小费',C.chatTip],['应变奖',C.qteTip]].filter(x=>x[1]>0);
   const total=sum+tip+extras.reduce((a,x)=>a+x[1],0);
   S.coins+=total;dayEarn+=total;dayStars.push(stars);S.served++;save();hud();popCoin();
   if(total>0)setTimeout(()=>sfx.coin(),150);
@@ -803,7 +906,9 @@ function update(dt,t){
   if(!paused&&!C.done&&entry>=1){
     C.pat-=dt*K.decay*(1-.12*S.up.aroma)*.95*C.kind.pat*(C.has('rush')?1.35:1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
-    if(C.has('chatty')&&!chatOpen&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
+    if(!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
+    if(Q){Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
+    if(C.has('chatty')&&!chatOpen&&!Q&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
     if(chatOpen){chatOpen.t-=dt;const tm=$('chatTm');if(tm)tm.style.width=(chatOpen.t/chatOpen.max*100)+'%';if(chatOpen.t<=0)answerChat(-1);}
     if(C.pat<=0){C.pat=0;setFace('angry',99);sfx.bad();checkout(true);}
     if(faceT<=0&&face!==baseFace())face=baseFace();
@@ -876,7 +981,7 @@ function frogXf(c,t){
 function ell(c,x,y,rx,ry,rot){c.beginPath();c.ellipse(x,y,rx,ry,rot||0,0,TAU);}
 function drawFrog(c,t){
   c.save();frogXf(c,t);
-  drawImg(c,IMG.body,ART.body);
+  drawImg(c,C.bodyImg||IMG.body,ART.body);
   c.save();c.scale(KS,KS);c.translate(-X0,-Y0);faceArt(c,t);c.restore();
   c.restore();
   if(R.fly){const f=R.fly;
@@ -893,9 +998,19 @@ function flyAt(c,x,y,t){
 }
 function faceArt(c,t){
   if(face==='bliss'||face==='tickle'||face==='hot'){c.fillStyle=BLUSH;c.globalAlpha=.6;ell(c,736,822,54,30);c.fill();ell(c,1150,822,54,30);c.fill();c.globalAlpha=1;}
+  if(C.feat.includes('freckles')){c.fillStyle='rgba(120,70,30,.45)';for(const [bx,by] of [[736,840],[1150,840]])for(const [dx,dy] of [[-40,-6],[-18,10],[6,-8],[28,8],[44,-4]])circ(c,bx+dx,by+dy+28,5.5);}
   EYES.forEach(e=>eyeArt(c,e,t));
+  if(C.feat.includes('glasses')){const ek=C.eyeK||1;c.strokeStyle='#2e2219';c.lineWidth=9;c.fillStyle='rgba(255,255,255,.12)';
+    for(const e of EYES){c.beginPath();c.arc(e.x,e.y,e.ro*ek+13,0,TAU);c.fill();c.stroke();}
+    c.beginPath();c.moveTo(EYES[0].x+EYES[0].ro*ek+13,725);c.quadraticCurveTo(945,700,EYES[1].x-EYES[1].ro*ek-13,730);c.stroke();
+    c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=6;for(const e of EYES){c.beginPath();c.arc(e.x,e.y,e.ro*ek+2,Math.PI*1.2,Math.PI*1.45);c.stroke();}}
   mouthArt(c,t);
+  if(C.feat.includes('mustache')){c.strokeStyle='#e9e2d0';c.lineWidth=18;c.lineCap='round';
+    for(const s of [-1,1]){c.beginPath();c.moveTo(948,796);c.quadraticCurveTo(948+s*50,780,948+s*86,800);c.quadraticCurveTo(948+s*104,812,948+s*94,780);c.stroke();}
+    c.strokeStyle='rgba(120,100,70,.5)';c.lineWidth=3;for(const s of [-1,1]){c.beginPath();c.moveTo(948+s*10,800);c.quadraticCurveTo(948+s*50,788,948+s*82,804);c.stroke();}}
   headAcc(c);
+  if(C.feat.includes('flower')){c.save();c.translate(1080,640);c.fillStyle='#f48fb8';c.strokeStyle='#b4507a';c.lineWidth=4;for(let i=0;i<5;i++){c.save();c.rotate(i*TAU/5);ell(c,0,-26,17,24);c.fill();c.stroke();c.restore();}c.fillStyle='#f6d564';circ(c,0,0,15);c.restore();}
+  if(C.feat.includes('curlers')){for(const [x,y,r] of [[850,628,-.3],[948,608,0],[1046,628,.3]]){c.save();c.translate(x,y);c.rotate(r);c.fillStyle='#f48fb8';c.strokeStyle='#9c3e66';c.lineWidth=5;c.beginPath();c.roundRect(-30,-22,60,44,18);c.fill();c.stroke();c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=4;for(const k of [-12,0,12]){c.beginPath();c.moveTo(k,-18);c.lineTo(k,18);c.stroke();}c.restore();}}
   if(R.sac>.03)for(const [x,y] of [[650,892],[1246,892]]){const r=70*R.sac;
     c.fillStyle=OUTL;circ(c,x,y,r+8);c.fillStyle=BELLY;circ(c,x,y,r);
     if(face==='angry'){c.fillStyle='rgba(235,90,80,.3)';circ(c,x,y,r);}
@@ -912,11 +1027,12 @@ function eyeArt(c,e,t){
   if(face==='tickle'){const s=e.side,r=e.ri;c.beginPath();c.moveTo(e.x+r*.5*s,e.y-r*.45);c.lineTo(e.x-r*.4*s,e.y);c.lineTo(e.x+r*.5*s,e.y+r*.45);c.stroke();
     const tx=e.x+s*(e.ro-4),ty=e.y+24+((t*3)%1)*40;c.fillStyle='#7cc6f2';c.beginPath();c.moveTo(tx,ty-26);c.quadraticCurveTo(tx+20,ty+8,tx,ty+16);c.quadraticCurveTo(tx-20,ty+8,tx,ty-26);c.fill();return;}
   if(blink&&pop===1){c.beginPath();c.moveTo(e.x-e.ri*.75,e.y+6);c.quadraticCurveTo(e.x,e.y+18,e.x+e.ri*.75,e.y+6);c.stroke();return;}
-  c.fillStyle=RING;circ(c,e.x,e.y,e.ro*pop);c.fillStyle=GREEN;circ(c,e.x,e.y,e.ri*pop);
+  const ek=C.eyeK||1;c.fillStyle=RING;circ(c,e.x,e.y,e.ro*pop*ek);c.fillStyle=GREEN;circ(c,e.x,e.y,e.ri*pop*ek);
+  if(C.feat.includes('lashes')){c.strokeStyle=OUTL;c.lineWidth=8;for(let j=0;j<3;j++){const a=Math.PI*(e.side<0?1.18+j*.12:1.58+j*.12),r0=e.ro*pop*ek;c.beginPath();c.moveTo(e.x+Math.cos(a)*r0,e.y+Math.sin(a)*r0);c.lineTo(e.x+Math.cos(a)*(r0+26),e.y+Math.sin(a)*(r0+26));c.stroke();}}
   let lx=e.px,ly=e.py;
   if(face==='shiver'){lx=Math.sin(t*40)*6;ly=0;}else if(R.fly){lx=clamp((R.fly.x-MV[0])/30,-1,1)*18;ly=-16;}else if(ptr){lx=clamp((ptr[0]-MV[0])/40,-1,1)*16;ly=4;}
   if(pop>1){lx*=.3;ly*=.3;}
-  const pr=face==='angry'?13:pop>1?9:18;
+  const pr=(face==='angry'?13:pop>1?9:18)*ek;
   c.fillStyle=PUPIL;circ(c,e.x+lx,e.y+ly,pr);c.fillStyle='rgba(255,255,255,.85)';circ(c,e.x+lx-pr*.35,e.y+ly-pr*.35,Math.max(3,pr*.3));
   if(face==='angry'){c.strokeStyle=OUTL;c.lineWidth=12;c.beginPath();c.moveTo(e.x+e.side*e.ro*.9,e.y-e.ro-12);c.lineTo(e.x-e.side*e.ro*.5,e.y-e.ro+16);c.stroke();}
 }
@@ -947,7 +1063,7 @@ function headAcc(c){
     c.fillStyle='rgba(255,255,255,.35)';c.fillRect(866,676,24,10);c.fillRect(972,676,24,10);}
 }
 function drawFoot(c,t){
-  drawImg(c,IMG.fclean,ART.foot);
+  drawImg(c,C.footImg||IMG.fclean,ART.foot);
   if(fadeDirt>0||C.q.scrub==null){c.save();if(fadeDirt>0)c.globalAlpha=clamp(fadeDirt,0,1);c.drawImage(D,0,0,W,H);
     for(const l of C.lumps)if(l.hp>0)drawLump(c,l,t);c.restore();}
   if(C.q.scrub!=null&&C.callus&&C.callus.hp>0)drawCallus(c,C.callus,t);
@@ -1078,6 +1194,7 @@ function draw(t){
   ctx.restore();
   if(M&&M.type==='soak')drawThermo(ctx);
   if(M&&M.type==='scrub'&&C.tickles.length)drawTickleMeter(ctx);
+  if(Q)drawQTE(ctx,t);
   drawParticles(ctx,true);
 }
 
