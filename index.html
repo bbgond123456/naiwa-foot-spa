@@ -91,8 +91,37 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .menu .x{color:var(--ink-soft);font-size:11px}
 .tool.locked{opacity:.38;filter:grayscale(.85)}
 
+.bench{display:flex;align-items:center;gap:6px;background:rgba(22,58,53,.6);border-radius:10px;padding:4px 8px;min-height:44px;overflow:hidden}
+.bl{font-size:11px;color:var(--paper);opacity:.8;writing-mode:vertical-rl;letter-spacing:.2em;flex:none}
+.be{font-size:12px;color:var(--paper);opacity:.6}
+.bn{margin-left:auto;font-size:11.5px;color:var(--gold);flex:none;white-space:nowrap}
+.bs{display:flex;align-items:center;gap:4px;background:var(--paper);border-radius:8px;padding:3px 6px 3px 3px;min-width:0;animation:bin .35s}
+@keyframes bin{from{transform:translateY(-8px);opacity:0}}
+.bs>svg{width:30px;height:25px;flex:none}
+.bo{display:flex;flex-direction:column;gap:3px;min-width:0;overflow:hidden}
+.bi{display:flex;gap:1px}
+.bi svg{width:14px;height:14px}
+.bp{display:block;width:100%;min-width:36px;height:4px;background:var(--paper-line);border-radius:2px;overflow:hidden}
+.bp b{display:block;height:100%;width:100%;background:var(--good)}
+.lvbar{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.lvt{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums}
+.lvs{color:var(--gold);letter-spacing:2px;text-shadow:0 1px 0 var(--wood-dark)}
+.lvtrack{position:relative;height:8px;background:var(--paper-line);border-radius:4px}
+.lvtrack i{display:block;height:100%;background:var(--gold);border-radius:4px}
+.lvtrack b{position:absolute;top:-3px;width:2px;height:14px;background:var(--wood-dark);transform:translateX(-1px)}
+.lvg{display:flex;justify-content:space-between;color:var(--ink-soft);font-size:11.5px;font-variant-numeric:tabular-nums}
+.bigstars{font-size:46px;color:var(--gold);text-align:center;letter-spacing:8px;text-shadow:0 2px 0 var(--wood-dark);line-height:1}
+.bigstars span,.bigstars.dim{color:var(--paper-line);text-shadow:none}
+.unlockcard{display:flex;gap:10px;align-items:center;background:#fff3cf;border-radius:10px;padding:10px}
+.unlockcard.new{background:var(--sign);color:var(--paper)}
+.unlockcard svg{width:40px;height:40px;flex:none;background:var(--paper);border-radius:8px;padding:4px}
+.unlockcard div{display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.45}
+.unlockcard b{font-size:15px}
+.item.lock{opacity:.55}
+.menu .x{color:var(--ink-soft);font-size:11px}
+
 /* tray */
-.tray{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:var(--wood-dark);padding:6px;border-radius:12px;box-shadow:inset 0 2px 0 rgba(255,255,255,.12)}
+.tray{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--wood-dark);padding:6px;border-radius:12px;box-shadow:inset 0 2px 0 rgba(255,255,255,.12)}
 .tool{border:0;border-radius:9px;background:linear-gradient(var(--wood-light),var(--wood));box-shadow:0 3px 0 #4d2c12;padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;color:var(--ink)}
 .tool svg{width:30px;height:30px}
 .tool small{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -163,6 +192,8 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <div class="pat"><span>耐心</span><div class="bar"><i id="patBar"></i></div></div>
   </section>
 
+  <div class="bench" id="bench"></div>
+
   <div class="stage" id="stageWrap">
     <canvas id="stage"></canvas>
     <div class="swatches" id="swatches" hidden></div>
@@ -186,13 +217,14 @@ function resize(){const r=wrap.getBoundingClientRect();dpr=Math.min(2,window.dev
 new ResizeObserver(resize).observe(wrap);resize();
 
 /* ---------- data ---------- */
-const STEPS={soak:{n:'泡脚',p:15},scrub:{n:'搓泥',p:25},trim:{n:'修脚',p:30},massage:{n:'足底按摩',p:40},paint:{n:'蛙趾美甲',p:35}};
+const STEPS={soak:{n:'泡脚',p:15},scrub:{n:'搓泥',p:25},peel:{n:'刮死皮',p:30},trim:{n:'修脚',p:30},massage:{n:'足底按摩',p:40},paint:{n:'蛙趾美甲',p:35}};
 const UPG=[
-  {id:'brush',n:'加厚搓澡巾',d:'搓泥范围更大',max:4,base:60},
-  {id:'kettle',n:'恒温泡脚桶',d:'舒适水温区间更宽',max:4,base:50},
-  {id:'clip',n:'进口指甲钳',d:'更容易剪中长指甲',max:3,base:70},
-  {id:'aroma',n:'艾草香薰',d:'客人更有耐心，小费更多',max:4,base:90},
-  {id:'deco',n:'店面装修',d:'所有项目涨价 12%',max:5,base:150},
+  {id:'kettle',n:'泡脚桶',d:'舒适水温区间更宽',max:4,base:50,svc:'soak',lv:['木桶','保温桶','恒温桶','中药桶','温泉桶']},
+  {id:'brush',n:'搓澡工具',d:'搓泥范围更大',max:4,base:60,svc:'scrub',lv:['毛巾','加厚巾','电动刷','火山石','金刚砂']},
+  {id:'clip',n:'修脚工具',d:'更容易剪中长指甲',max:4,base:70,svc:'trim',lv:['普通钳','进口钳','修脚刀','修脚仪','大师套装']},
+  {id:'blade',n:'刮刀',d:'刮得更宽，死皮掉得更快',max:4,base:80,svc:'peel',lv:['小刮刀','宽刮刀','双刃刮刀','陶瓷刮刀','匠人刮刀']},
+  {id:'aroma',n:'香薰',d:'客人更有耐心，小费更多',max:4,base:90,lv:['没有','艾草香','檀香','沉香','龙涎香']},
+  {id:'deco',n:'店面装修',d:'所有项目涨价 12%',max:5,base:150,lv:['破旧','干净','温馨','雅致','高档','奢华']},
 ];
 const upCost=(u,lv)=>Math.round(u.base*Math.pow(1.75,lv)/10)*10;
 const NAMES=['呱太郎','蛙小美','老蛙头','阿呱','绿豆','呱呱姐','蛙大爷','荷叶仙','跳跳','小青','泥鳅哥','莲蓬','呱子','田鸡王'];
@@ -233,7 +265,7 @@ const ease=k=>1-Math.pow(1-k,3);
 
 /* ---------- save ---------- */
 const KEY='naiwa-footspa-v1';
-const def=()=>({coins:0,day:1,up:{brush:0,kettle:0,clip:0,aroma:0,deco:0},served:0,muted:false});
+const def=()=>({coins:0,day:1,up:{brush:0,kettle:0,clip:0,blade:0,aroma:0,deco:0},served:0,muted:false,best:{}});
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.up)return Object.assign(def(),s,{up:Object.assign(def().up,s.up)});}catch(e){}return def();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 let S=load();
@@ -390,8 +422,8 @@ const KINDS={
   slim:{n:'瘦高个',sx:.94,sy:1.03,pat:1.06,lines:['我脚长，你多费点心。','你们这椅子坐着真舒服。']},
   tad:{n:'急性子',sx:1,sy:1,pat:1.15,lines:['我赶时间，你手脚麻利点。','快快快，泡完脚还要去开会呱。']}
 };
-const ORDER=['soak','scrub','trim','massage','paint'];
-const UNLOCK={soak:1,scrub:1,trim:2,massage:3,paint:4};
+const ORDER=['soak','scrub','peel','trim','massage','paint'];
+const UNLOCK={soak:1,scrub:1,trim:3,peel:5,massage:7,paint:9};
 const HERBS=[{n:'艾草',c:'#6a9a4a'},{n:'玫瑰',c:'#e0577a'},{n:'姜片',c:'#e2b24a'},{n:'牛奶',c:'#f2eee2'}];
 const ERASER={n:'卸甲水',c:null};
 const TRAITS={
@@ -405,7 +437,7 @@ const TRAITS={
   sweaty:{n:'脚汗王',d:'硬泥块特别多',need:'scrub'},
   insomnia:{n:'失眠',d:'按摩时会多按几次失眠点',need:'massage'}
 };
-const TRAIT_DAY={scald:1,cold:1,rush:1,rich:1,chatty:2,sweaty:2,picky:3,insomnia:3,ticklish:4};
+const TRAIT_DAY={scald:1,cold:1,rush:1,rich:1,chatty:2,sweaty:2,picky:4,insomnia:7,ticklish:4};
 const TRAIT_LINES={scald:'水别太烫啊，我皮薄。',cold:'我这老寒腿，水要烫才舒服。',ticklish:'我脚底特别怕痒，你轻点搓。',rush:'快点快点，我赶时间！',picky:'我可是很挑的，别糊弄我。',chatty:'老板，咱边洗边聊呗？',rich:'弄得好，小费少不了你的。',sweaty:'我这脚汗多，泥都结块了…',insomnia:'最近老失眠，帮我多按按失眠点。'};
 const CHATS=[
   {q:'你说我这脚还有救吗？',a:['包在我身上！','这个……难说。'],g:0},
@@ -418,39 +450,49 @@ const CHATS=[
   {q:'我这脚是不是全荷塘最黑的？',a:['确实最黑','洗完就是最白的'],g:1}
 ];
 const NEWS={
-  1:['先学两门手艺：泡脚、搓泥，最后用毛巾结账','每位客人长相、颜色、脏的程度都不一样','有的怕烫、有的要烫水，看名字下面的标签','会有突发状况：打喷嚏、苍蝇落脚上，看到闪圈快点'],
-  2:['解锁「修脚」：点长指甲剪掉','硬泥块更常见了','新的突发：脚抽筋，要连点揉开','新性格：话痨、脚汗王'],
-  3:['解锁「足底按摩」：光圈缩到金圈时点穴位','新性格：挑剔、失眠（点标签看说明）','突发状况一位客人最多两次'],
-  4:['解锁「蛙趾美甲」','按摩出现「长按」穴位','出现要剪好几下的厚指甲','脚底有了痒痒肉，搓太快客人会蹬你','泡脚时会刮凉风，水温突然下降','新的突发：脚要滑下去，按住撑住'],
-  5:['泡脚可以「加料」，按客人点的放','客人会中途改单：加项目、减项目、换颜色'],
-  6:['按摩出现「连点」揉按','修脚时客人会乱动脚','美甲出现撞色、只涂一个'],
-  7:['脚跟会长老茧：修脚时按住来回锉平','客人可能同时有两种性格'],
-  8:['美甲出现彩虹四色','之后客人一天比一天多、一天比一天急']
+  1:['先学两门手艺：泡脚、搓泥，做完用毛巾结账','客人会陆续到店，坐在上面的长凳排队，等太久会走','本关收入达到目标就拿星星，1 星就能过关','会有突发状况：打喷嚏、苍蝇，看到闪圈快点'],
+  2:['硬泥块出现了，要按住多搓几下','新的突发：脚抽筋，要连点揉开'],
+  3:['解锁新项目「修脚」：点长指甲把它剪掉'],
+  4:['脚底有了痒痒肉，搓太快客人会蹬你','出现要剪好几下的厚指甲','泡脚时会刮凉风，水温突然下降'],
+  5:['解锁新项目「刮死皮」：顺着箭头往下刮，刮出一卷卷死皮'],
+  6:['泡脚可以加料，按客人点的放','客人会中途改单：加项目、减项目'],
+  7:['解锁新项目「足底按摩」：光圈缩到金圈时点穴位'],
+  8:['按摩出现「长按」穴位','修脚时客人会乱动脚','客人一次点的项目更多了'],
+  9:['解锁新项目「蛙趾美甲」：照卡片涂颜色'],
+  10:['按摩出现「连点」揉按','之后客人更多、更急'],
+  11:['美甲出现撞色、只涂一个'],
+  13:['美甲出现彩虹四色']
 };
+const UNLOCK_HOW={soak:'按住画面加热水，把水温停在绿区',scrub:'在脚底来回搓，把黑泥搓干净',trim:'点长出来的指甲，咔嚓剪掉，别夹到肉',peel:'顺着箭头往下刮，刮出一卷卷死皮。逆着刮会疼，太快会刮破',massage:'光圈缩到金圈上时点那个穴位',paint:'照右上角的卡片，选颜色点脚趾'};
 function cfg(d){
   return{
-    count:Math.min(7,2+Math.ceil(d*.6)),
+    count:clamp(3+Math.floor((d-1)/2),3,6),
     unlock:ORDER.filter(s=>UNLOCK[s]<=d),
-    traitP:Math.min(.9,.32+(d-1)*.09),
-    twoTraits:d>=7,
-    eventP:d>=5?Math.min(.5,.22+(d-5)*.05):0,
-    decay:1+d*.07,
-    lumps:d>=2?Math.min(4,Math.floor(d/2)):0,
+    traitP:Math.min(.85,.3+(d-1)*.07),
+    twoTraits:d>=9,
+    eventP:d>=6?Math.min(.4,.18+(d-6)*.04):0,
+    decay:1.35+d*.06,
+    lumps:d>=2?Math.min(3,Math.floor(d/3)+1):0,
     tickle:d>=4?1:0,
-    thick:d>=4?Math.min(.55,.18+(d-4)*.07):0,
-    sway:d>=6,
-    callus:d>=7?.55:0,
-    mNotes:Math.min(9,4+Math.floor(d/2)),
-    mSpeed:Math.min(1.7,.9+d*.07),
-    hold:d>=4,rapid:d>=6,
-    designs:d>=8?['solid','alt','rainbow','one']:d>=6?['solid','alt','one']:['solid'],
-    herbs:d>=5,gust:d>=4,soakNeed:d>=6?4:3
+    thick:d>=4?Math.min(.5,.15+(d-4)*.06):0,
+    sway:d>=8,
+    mNotes:Math.min(7,3+Math.floor(d/3)),
+    mSpeed:Math.min(1.6,.95+d*.05),
+    hold:d>=8,rapid:d>=10,
+    designs:d>=13?['solid','alt','rainbow','one']:d>=11?['solid','alt','one']:['solid'],
+    herbs:d>=6,gust:d>=4,soakNeed:d>=8?3:2.5,
+    arrive:Math.max(8,19-d*.8),wait:Math.max(30,55-d*1.6),
+    patches:d>=8?3:2,
+    steps:d>=8?[2,3,3,4]:d>=3?[2,2,3]:[1,2,2]
   };
 }
-const goalFor=d=>Math.round(cfg(d).count*(42+d*7)/10)*10;
+const goalFor=d=>Math.round(cfg(d).count*(38+d*6)/10)*10;
+const starGoals=g=>[Math.round(g*.5/10)*10,Math.round(g*.75/10)*10,g];
+const totalStars=()=>Object.values(S.best||{}).reduce((a,b)=>a+b,0);
 let R={jy:0,jv:0,tick:0,melt:0,sac:0,sacT:0,arm:0,fly:null,idle:0,land:0};
-let C=null,M=null,face='neutral',faceT=0,entry=0,bucket=0,shake=0,paused=true,hold=false,scrubbing=false,lastP=[0,0],ptr=null;
-let custIdx=0,dayEarn=0,dayStars=[],dayGoal=0,rushT=8,towelArm=false,bubT=0,tickleT=0,wrongCount=0,dustT=0;
+let C=null,M=null,face='neutral',faceT=0,entry=0,bucket=0,shake=0,paused=true,hold=false,scrubbing=false,peeling=false,lastP=[0,0],ptr=null;
+let dayEarn=0,dayStars=[],dayGoal=0,rushT=8,towelArm=false,bubT=0,tickleT=0,wrongCount=0,dustT=0,scrapeT=0;
+let BQ=[],spawned=0,arriveT=0,specId=0,doneCount=0,missed=0,peelFade=0;
 let swayAmt=0,kick=0,chatOpen=null;
 const FO={x:0,y:0};
 const PS=[],FT=[];
@@ -478,17 +520,18 @@ function footSpots(n,r,y0,y1,avoid){
 }
 function soakZone(){const z=(C&&C.traits.map(k=>TRAITS[k].zone).find(Boolean))||[39,44];const w=S.up.kettle*.8;return[z[0]-w,z[1]+w];}
 
-function newCustomer(){
+/* ---------- customers: arrive (spec) → bench → seat ---------- */
+function makeSpec(){
   const d=S.day,K=cfg(d),U=K.unlock;
-  let st=[];
-  if(U.includes('soak')&&Math.random()<.8)st.push('soak');
-  st.push('scrub');
-  if(U.includes('trim')&&Math.random()<.7)st.push('trim');
-  if(U.includes('massage')&&Math.random()<.55)st.push('massage');
-  if(U.includes('paint')&&Math.random()<Math.min(.7,.35+(d-4)*.08))st.push('paint');
-  if(st.length<2)st.push('soak');
+  const n=Math.min(U.length,pick(K.steps));
+  const st=[];
+  const newest=U.slice().sort((a,b)=>UNLOCK[b]-UNLOCK[a])[0];
+  if(UNLOCK[newest]===d&&d>1&&Math.random()<.85)st.push(newest);
+  if(U.includes('scrub')&&!st.includes('scrub')&&st.length<n&&Math.random()<.75)st.push('scrub');
+  const rest=U.filter(s=>!st.includes(s)).sort(()=>Math.random()-.5);
+  while(st.length<n&&rest.length)st.push(rest.pop());
   const steps=ORDER.filter(s=>st.includes(s));
-  const look=pickLook(),feat=look.feat;
+  const look=pickLook();
   const pool=Object.keys(TRAITS).filter(k=>TRAIT_DAY[k]<=d&&(!TRAITS[k].need||steps.includes(TRAITS[k].need)));
   const traits=[];
   if(pool.length&&Math.random()<K.traitP){
@@ -496,29 +539,81 @@ function newCustomer(){
     traits.push(pref.length&&Math.random()<.7?pick(pref):pick(pool));
     if(K.twoTraits&&Math.random()<.4){const p2=pool.filter(k=>k!==traits[0]&&TRAITS[k].ex!==traits[0]);if(p2.length)traits.push(pick(p2));}
   }
-  const kid=traits.includes('rush')?'tad':look.kind||pick(['round','slim']);
-  C={name:pick(look.names),look,feat,pal:pick(PALS),kind:KINDS[kid],
+  const feat=look.feat;
+  return{id:++specId,look,steps,traits,name:pick(look.names),kid:traits.includes('rush')?'tad':look.kind||pick(['round','slim']),
     acc:feat.includes('flower')||feat.includes('curlers')?null:pick(look.acc),chain:feat.includes('chain')||Math.random()<.08,eyeK:feat.includes('bigEyes')?1.14:1,
-    tag:10+(Math.random()*89|0),steps,traits,pat:100,q:{},si:0,done:false,evented:false,added:null,
-    paint:steps.includes('paint')?genPaint(d):null,
-    herb:steps.includes('soak')&&K.herbs&&Math.random()<.6?pick(HERBS):null,
-    nails:genNails(d,steps.includes('trim')),lumps:[],tickles:[],callus:null,
+    tag:10+(Math.random()*89|0),herb:steps.includes('soak')&&K.herbs&&Math.random()<.6?pick(HERBS):null,
+    lvl:d===1?.45+Math.random()*.5:Math.min(1,.6+Math.random()*.4+d*.015),wpat:100};
+}
+function seat(sp){
+  const d=S.day,K=cfg(d),look=sp.look,feat=look.feat,steps=sp.steps.slice();
+  C={name:sp.name,look,feat,pal:pick(PALS),kind:KINDS[sp.kid],acc:sp.acc,chain:sp.chain,eyeK:sp.eyeK,tag:sp.tag,
+    steps,traits:sp.traits.slice(),pat:Math.round(70+sp.wpat*.3),waited:sp.wpat<70,q:{},si:0,done:false,evented:false,added:null,
+    paint:steps.includes('paint')?genPaint(d):null,herb:sp.herb,
+    nails:genNails(d,steps.includes('trim')),lumps:[],tickles:[],callus:null,patches:[],
     fast:0,chatTip:0,chats:0,chatT:5+Math.random()*5,qtes:0,qteT:3+Math.random()*7,qteTip:0};
   C.has=k=>C.traits.includes(k);
   C.bodyImg=(look.pal||feat.includes('spots'))?recolor(IMG.body,look.pal,false,'b'+look.id,feat.includes('spots')):IMG.body;
   C.footImg=look.pal?recolor(IMG.fclean,look.pal,true,'f'+look.id):IMG.fclean;
   buildDirt();
-  const lvl=d===1?.45+Math.random()*.5:Math.min(1,.6+Math.random()*.4+d*.015);if(lvl<.97)partialClean(lvl);C.dirt=lvl;
-  const nL=K.lumps||(Math.random()<.4?1:0);
-  C.tickles=footSpots((K.tickle?1:0)+(C.has('ticklish')?2:0),17,215,320);
-  C.lumps=footSpots(nL+(C.has('sweaty')?2:0)+(look.id==='worker'?1:0),11,178,345,C.tickles).map(p=>Object.assign(p,{hp:1,seed:Math.random()*10}));
-  if(steps.includes('trim')&&Math.random()<K.callus){const v=V(830,1830);C.callus={x:v[0],y:v[1],r:22,hp:1};}
-  M=null;Q=null;entry=0;bucket=0;wrongCount=0;rushT=8;kick=0;swayAmt=0;PS.length=0;FT.length=0;closeChat();
+  if(steps.includes('scrub')){if(sp.lvl<.97)partialClean(sp.lvl);
+    C.tickles=footSpots((K.tickle?1:0)+(C.has('ticklish')?2:0),17,215,320);
+    C.lumps=footSpots((K.lumps||(Math.random()<.4?1:0))+(C.has('sweaty')?2:0)+(look.id==='worker'?1:0),11,178,345,C.tickles).map(p=>Object.assign(p,{hp:1,seed:Math.random()*10}));}
+  else{dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}
+  buildPeel(steps.includes('peel')?K.patches:0);
+  M=null;Q=null;entry=0;bucket=0;wrongCount=0;rushT=8;kick=0;swayAmt=0;peelFade=0;PS.length=0;FT.length=0;closeChat();
   face='neutral';faceT=0;R={jy:0,jv:0,tick:0,melt:0,sac:0,sacT:0,arm:0,fly:null,idle:0,land:0};
-  say(traits.length&&Math.random()<.65?TRAIT_LINES[traits[0]]:lvl<.7?'今天还算干净，随便搓搓就行。':pick(look.lines));
-  renderTicket();updateTray();setInstr('看看单子，选第一件工具');progress(null);$('swatches').hidden=true;
+  say(C.waited?pick(['等了好半天，终于轮到我了。','你们这儿排队也太久了吧。']):C.traits.length&&Math.random()<.65?TRAIT_LINES[C.traits[0]]:sp.lvl<.7&&steps.includes('scrub')?'今天还算干净，随便搓搓就行。':pick(look.lines));
+  renderTicket();updateTray();setInstr('看看单子，选第一件工具');progress(null);$('swatches').hidden=true;renderBench();
   setTimeout(()=>{sfx.croak();R.sacT=.7;},250);
 }
+function nextCustomer(){
+  if(BQ.length){seat(BQ.shift());}
+  else if(spawned<dayCount()){spawned++;seat(makeSpec());arriveT=Math.min(arriveT,cfg(S.day).arrive);}
+  else{showDayEnd();return;}
+  renderBench();
+}
+function lookColor(l){if(!l.pal)return'#f6d564';const c=hsv2rgb(l.pal.h,Math.min(1,.62*l.pal.s),Math.min(1,.97*l.pal.v));return`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;}
+function avatar(l){const c=lookColor(l);return`<svg viewBox="0 0 34 28" aria-hidden="true"><ellipse cx="17" cy="18" rx="14" ry="9" fill="${c}" stroke="#6b3f12" stroke-width="1.5"/><circle cx="9" cy="10" r="6" fill="${c}" stroke="#6b3f12" stroke-width="1.5"/><circle cx="25" cy="10" r="6" fill="${c}" stroke="#6b3f12" stroke-width="1.5"/><circle cx="9" cy="10" r="3.6" fill="#cbe6c0"/><circle cx="25" cy="10" r="3.6" fill="#cbe6c0"/><circle cx="9" cy="10.5" r="1.8" fill="#4d3420"/><circle cx="25" cy="10.5" r="1.8" fill="#4d3420"/><path d="M12 20q5 3 10 0" stroke="#6b3f12" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>`;}
+function renderBench(){
+  const left=Math.max(0,dayCount()-spawned);
+  $('bench').innerHTML=`<span class="bl">等候</span>`+(BQ.length?BQ.map(sp=>`<div class="bs" data-id="${sp.id}">${avatar(sp.look)}<div class="bo"><span class="bi">${sp.steps.map(s=>`<svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[s]}</svg>`).join('')}</span><i class="bp"><b id="bp${sp.id}"></b></i></div></div>`).join(''):`<span class="be">长凳空着</span>`)+(left?`<span class="bn">还有 ${left} 位</span>`:'');
+  updateBenchBars();
+}
+function updateBenchBars(){for(const sp of BQ){const b=$('bp'+sp.id);if(b){const v=clamp(sp.wpat,0,100);b.style.width=v+'%';b.style.background=v>55?'var(--good)':v>25?'var(--warn)':'var(--bad)';}}}
+
+/* ---------- dead skin (peel) ---------- */
+const PL=document.createElement('canvas');PL.width=W*DS;PL.height=H*DS;const plc=PL.getContext('2d');
+let peelInit=1;
+function countCanvas(cv){smc.clearRect(0,0,90,120);smc.drawImage(cv,0,0,90,120);const d=smc.getImageData(0,0,90,120).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>60)n++;return n;}
+function buildPeel(n){
+  plc.setTransform(1,0,0,1,0,0);plc.globalCompositeOperation='source-over';plc.clearRect(0,0,PL.width,PL.height);C.patches=[];if(!n)return;
+  const spots=[[V(825,1830),38,26],[V(806,1338),40,20],[V(1010,1450),17,30]];
+  plc.setTransform(DS,0,0,DS,0,0);
+  for(let i=0;i<n;i++){const [[x,y],rx,ry]=spots.at(i),seed=Math.random()*10;C.patches.push({x,y,rx,ry});
+    plc.globalCompositeOperation='source-over';plc.beginPath();
+    for(let k=0;k<18;k++){const a=k/18*TAU,f=.88+.2*Math.abs(Math.sin(seed+k*1.3));plc.lineTo(x+Math.cos(a)*rx*f,y+Math.sin(a)*ry*f);}
+    plc.closePath();plc.fillStyle='rgba(120,90,40,.35)';plc.save();plc.translate(0,1.6);plc.fill();plc.restore();plc.fillStyle='#e8d595';plc.fill();plc.strokeStyle='#b0904f';plc.lineWidth=1.4;plc.stroke();
+    plc.globalCompositeOperation='source-atop';
+    plc.strokeStyle='rgba(150,118,60,.7)';plc.lineWidth=1;
+    for(let k=0;k<7;k++){let px=x-rx*.7+Math.random()*rx*1.4,py=y-ry*.6+Math.random()*ry*.6;plc.beginPath();plc.moveTo(px,py);for(let j=0;j<3;j++){px+=(Math.random()-.5)*8;py+=3+Math.random()*5;plc.lineTo(px,py);}plc.stroke();}
+    plc.fillStyle='rgba(255,250,232,.7)';for(let k=0;k<10;k++){plc.beginPath();plc.ellipse(x-rx+Math.random()*rx*2,y-ry+Math.random()*ry*2,2+Math.random()*3,1+Math.random()*1.5,Math.random()*3,0,TAU);plc.fill();}
+    plc.fillStyle='rgba(150,120,70,.35)';for(let k=0;k<16;k++){plc.beginPath();plc.arc(x-rx+Math.random()*rx*2,y-ry+Math.random()*ry*2,.7+Math.random(),0,TAU);plc.fill();}}
+  plc.globalCompositeOperation='source-over';
+  peelInit=Math.max(1,countCanvas(PL));
+}
+function drawCurl(c,x,y,s,rot){
+  if(s<1)return;c.save();c.translate(x,y);c.rotate(rot||0);
+  c.fillStyle='#efe2b5';c.strokeStyle='#b39a62';c.lineWidth=1.2;c.beginPath();c.ellipse(0,0,s,s*.62,0,0,TAU);c.fill();c.stroke();
+  c.strokeStyle='rgba(160,130,80,.7)';c.beginPath();c.ellipse(-s*.1,0,s*.62,s*.38,0,0,TAU);c.stroke();c.beginPath();c.ellipse(-s*.18,0,s*.3,s*.18,0,0,TAU);c.stroke();
+  c.fillStyle='rgba(255,252,238,.6)';c.beginPath();c.ellipse(-s*.3,-s*.3,s*.35,s*.12,-.3,0,TAU);c.fill();
+  c.restore();
+}
+function drawPeelGuides(c,t){
+  for(const p of C.patches){const a=.35+.3*Math.sin(t*5+p.x);c.strokeStyle=`rgba(120,90,40,${a})`;c.lineWidth=2;c.lineCap='round';
+    for(const dx of [-p.rx*.35,p.rx*.35]){const off=((t*14)%10);c.beginPath();c.moveTo(p.x+dx-5,p.y-6+off);c.lineTo(p.x+dx,p.y-1+off);c.lineTo(p.x+dx+5,p.y-6+off);c.stroke();}}
+}
+function drawBlade(c,x,y){c.save();c.translate(x,y);c.rotate(-.5);c.fillStyle='#d9dee3';c.strokeStyle='#33404a';c.lineWidth=1.3;c.beginPath();c.roundRect(-11,-26,22,10,2);c.fill();c.stroke();c.fillStyle='#c08447';c.beginPath();c.roundRect(-4,-44,8,20,3);c.fill();c.stroke();c.restore();}
 
 /* ---------- UI helpers ---------- */
 function say(t){$('quote').textContent='「'+t+'」';}
@@ -527,7 +622,7 @@ function flashInstr(t){setInstr(t);const b=$('instrBox');b.classList.remove('fla
 function progress(v){const w=$('progWrap');if(v==null){w.hidden=true;return;}w.hidden=false;$('prog').style.width=(clamp(v,0,1)*100)+'%';}
 function setFace(f,t){if(f!==face){if(f==='ouch')R.jv=-260;if(f==='hot')R.jv=-160;if(f==='angry')R.sacT=.6;}if(f==='tickle')R.tick=1;face=f;faceT=t;}
 const baseFace=()=>C&&C.pat<30?'angry':'neutral';
-function hud(){$('dayChip').textContent=`第${S.day}天`;$('coinChip').textContent='¥'+S.coins;if(C)$('custCount').textContent=`${custIdx+1}/${dayCount()} 位 · 今日 ¥${dayEarn}/${dayGoal}`;}
+function hud(){$('dayChip').textContent=`第${S.day}关 · ★${totalStars()}`;$('coinChip').textContent='¥'+S.coins;if(C)$('custCount').textContent=`${Math.min(doneCount+1,dayCount())}/${dayCount()} 位 · ¥${dayEarn}`;}
 function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');}
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
@@ -548,10 +643,11 @@ const ICONS={
   scrub:'<rect x="4" y="5" width="16" height="15" rx="5" fill="#f2ead5" stroke="#4d2c12"/><path d="M7 9l2 2 2-2 2 2 2-2 2 2M7 14l2 2 2-2 2 2 2-2 2 2" stroke="#3a8a7f" fill="none"/>',
   trim:'<path d="M4 15l13-6 3 2-13 6z" fill="#cfd6dc" stroke="#33404a"/><path d="M4 15l2 4 13-6" fill="#9aa6b0" stroke="#33404a"/><circle cx="7.5" cy="16" r="1.2" fill="#33404a"/>',
   massage:'<circle cx="12" cy="12" r="3" fill="#c4302a"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#c4302a" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="9.5" fill="none" stroke="#4d2c12"/>',
+  peel:'<path d="M4 18l9-9 3 3-9 9z" fill="#d9dee3" stroke="#33404a"/><path d="M13 9l3-3 3 3-3 3" fill="#c08447" stroke="#4d2c12"/><path d="M4 21c2.5-1.5 5-1.5 7 0" stroke="#c9b27a" stroke-width="2" fill="none" stroke-linecap="round"/>',
   paint:'<rect x="9" y="3" width="6" height="6" rx="1" fill="#2b2118"/><rect x="6.5" y="9" width="11" height="12" rx="3" fill="#f48fb8" stroke="#4d2c12"/><path d="M9 12v5" stroke="#fff" stroke-linecap="round"/>',
   towel:'<rect x="4" y="6" width="16" height="13" rx="2" fill="#fff" stroke="#4d2c12"/><path d="M4 10h16M4 15h16" stroke="#4b6fd6" stroke-width="1.6"/><path d="M8 19v2M12 19v2M16 19v2" stroke="#4d2c12"/>'
 };
-const TOOLS=[['soak','木桶'],['scrub','搓澡巾'],['trim','指甲钳'],['massage','推拿'],['paint','甲油'],['towel','毛巾']];
+const TOOLS=[['soak','木桶'],['scrub','搓澡巾'],['peel','刮刀'],['trim','指甲钳'],['massage','推拿'],['paint','甲油'],['towel','毛巾']];
 $('tray').innerHTML=TOOLS.map(([id,n])=>`<button class="tool" id="tool-${id}" data-id="${id}" aria-label="${n}"><svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[id]}</svg><small>${n}</small></button>`).join('');
 $('tray').addEventListener('click',e=>{const b=e.target.closest('.tool');if(b)useTool(b.dataset.id,b);});
 function updateTray(){document.querySelectorAll('.tool').forEach(b=>{const id=b.dataset.id;b.classList.toggle('active',!!M&&M.type===id);b.classList.toggle('locked',id!=='towel'&&UNLOCK[id]>S.day);b.classList.remove('hint');});}
@@ -587,6 +683,7 @@ function startMini(t){
     M={type:'scrub',clean:0,mt:0,dirty:true,tk:0,lastT:0,kicks:0,t0:now};
     let s='在脚底来回搓，把黑泥搓干净';if(C.lumps.length)s+='；硬泥块要多搓几下';if(C.tickles.length)s+='；粉色痒痒肉要慢慢搓';setInstr(s);
   }
+  if(t==='peel'){M={type:'peel',clean:0,mt:0,dirty:false,bad:0,curls:0,curl:{x:0,y:0,s:0},badStroke:false,lastT:0,t0:now};setInstr('顺着箭头往下刮，刮出一卷卷死皮；逆着刮会疼，太快会刮破');}
   if(t==='trim'){
     M={type:'trim',miss:0,filing:false,t0:now};
     let s='点长指甲把它剪掉，别夹到肉';if(C.nails.some(n=>n.thick))s+='；厚指甲要剪几下';if(C.callus)s+='；脚跟老茧按住来回锉';setInstr(s);
@@ -606,6 +703,7 @@ function finish(step,q){
   const el=(performance.now()-M.t0)/1000;
   M=null;hold=false;scrubbing=false;$('swatches').hidden=true;
   if(step==='scrub')fadeDirt=1;
+  if(step==='peel')peelFade=1;
   sfx.ding();setFace('happy',1.6);R.jv=-170;
   addFT(q>=.9?'完美！':q>=.7?'不错':'凑合',180,250,q>=.9?'#f5c95c':'#ffffff',26,1);
   if(C.has('rush')&&el<10){C.fast+=6;addFT('快手奖 +¥6',180,280,'#f5c95c',18,1);}
@@ -624,6 +722,7 @@ function serviceEvent(){
   if(o==='add'){const s=pick(addable);
     if(s==='trim'){C.nails=genNails(S.day,true);}
     if(s==='paint'){C.paint=genPaint(S.day);}
+    if(s==='peel'){buildPeel(cfg(S.day).patches);}
     C.steps=C.steps.slice(0,C.si).concat(ORDER.filter(x=>remaining.includes(x)||x===s));C.added=s;
     say(s==='trim'?'哎，我指甲好长，顺便帮我剪剪！':`对了，顺便给我做个${STEPS[s].n}吧！`);}
   else if(o==='repaint'){C.paint=genPaint(S.day);C.added='paint';say(`美甲我改主意了，换成${C.paint.label}！`);}
@@ -683,6 +782,7 @@ cv.addEventListener('pointerdown',e=>{
   if(Q){const qp=qPos();if(Math.hypot(ptr[0]-qp[0],ptr[1]-qp[1])<38){qteHit();return;}}
   if(!M)return;
   if(M.type==='soak')hold=true;
+  else if(M.type==='peel'){peeling=true;lastP=[x,y];M.lastT=performance.now();M.curl={x,y,s:0};M.badStroke=false;}
   else if(M.type==='scrub'){if(kick>.3)return;scrubbing=true;lastP=[x,y];M.lastT=performance.now();scrubAt(x,y,x,y);M.dirty=true;}
   else if(M.type==='trim'){const cl=C.callus;if(cl&&cl.hp>0&&Math.hypot(x-cl.x,y-cl.y)<cl.r+8){M.filing=true;lastP=[x,y];}else tryClip(x,y);}
   else if(M.type==='massage')tryPress(x,y);
@@ -690,7 +790,22 @@ cv.addEventListener('pointerdown',e=>{
 });
 cv.addEventListener('pointermove',e=>{
   ptr=ptOf(e);const p=toFoot(ptr[0],ptr[1]);ptrF=p;
-  if(scrubbing&&M&&M.type==='scrub'){
+  if(peeling&&M&&M.type==='peel'){
+    const dx=p[0]-lastP[0],dy=p[1]-lastP[1],moved=Math.hypot(dx,dy),now=performance.now(),spd=moved/Math.max(8,now-M.lastT)*1000;M.lastT=now;
+    const on=C.patches.some(q=>((p[0]-q.x)/q.rx)**2+((p[1]-q.y)/q.ry)**2<1.2);
+    if(moved>1&&on){
+      if(dy<-1.5&&Math.abs(dy)>Math.abs(dx)*.8){if(!M.badStroke){M.badStroke=true;M.bad++;C.pat-=5;setFace('ouch',.8);say('逆着刮好疼！');sfx.bad();addFT('逆着纹路了',p[0],p[1]-14,'#ff8a80',15);}}
+      else if(spd>1000){if(!M.badStroke){M.badStroke=true;M.bad++;C.pat-=5;setFace('ouch',.8);say('慢点！刮破皮了！');sfx.bad();addFT('太快了',p[0],p[1]-14,'#ff8a80',15);}}
+      else if(dy>.4){
+        plc.setTransform(DS,0,0,DS,0,0);plc.globalCompositeOperation='destination-out';plc.lineCap='round';plc.lineWidth=9+S.up.blade*2.5;
+        plc.beginPath();plc.moveTo(lastP[0],lastP[1]);plc.lineTo(p[0],p[1]);plc.stroke();plc.globalCompositeOperation='source-over';
+        M.curl.s=Math.min(18,M.curl.s+moved*.1);M.curl.x=p[0];M.curl.y=p[1]+5;M.dirty=true;
+        if(scrapeT<=0){noise(.06,.16,2600);scrapeT=.07;}
+        if(Math.random()<.25)setFace(Math.random()<.5?'happy':'bliss',.5);
+      }
+    }
+    lastP=p;
+  }else if(scrubbing&&M&&M.type==='scrub'){
     scrubAt(lastP[0],lastP[1],p[0],p[1]);M.dirty=true;
     const moved=Math.hypot(p[0]-lastP[0],p[1]-lastP[1]),now=performance.now(),spd=moved/Math.max(8,now-M.lastT)*1000;M.lastT=now;
     if(moved>1.5&&onFoot(p[0],p[1])){
@@ -723,7 +838,8 @@ function kickFoot(){
   say(pick(['哈哈哈别挠了！','痒死了！你轻点！']));addFT('蹬！',150,200,'#ff8a80',22);
 }
 function holdRelease(){if(M&&M.type==='massage'&&M.holding&&M.hfill<1){const p=M.seq[M.k].p;M.holding=false;C.pat-=3;addFT('力道不够',p.x,p.y-30,'#ff8a80',16);sfx.bad();nextPoint();}}
-const release=()=>{hold=false;scrubbing=false;if(Q)Q.holding=false;if(M&&M.type==='trim')M.filing=false;holdRelease();};
+function curlDrop(){if(M&&M.type==='peel'&&M.curl&&M.curl.s>2.5){const s=M.curl.s;PS.push({k:'curl',x:M.curl.x,y:M.curl.y,vx:(Math.random()-.5)*70,vy:-50-Math.random()*40,life:1.5,max:1.5,r:s,rot:0,vr:(Math.random()-.5)*7});tone(520,220,.09,'triangle',.08);M.curls++;if(s>13){addFT(pick(['好大一卷！','舒服～','真解压']),M.curl.x,M.curl.y-18,'#fff3c4',16);say(pick(['哎呀，这死皮攒了好几年了。','刮完脚底好轻！','舒服，再来一下。']));}}if(M&&M.curl)M.curl.s=0;if(M)M.badStroke=false;}
+const release=()=>{curlDrop();peeling=false;hold=false;scrubbing=false;if(Q)Q.holding=false;if(M&&M.type==='trim')M.filing=false;holdRelease();};
 cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);cv.addEventListener('pointerleave',()=>{release();ptr=null;ptrF=null;});
 window.addEventListener('keydown',e=>{if(e.code==='Space'&&M&&M.type==='soak'&&!paused){hold=true;e.preventDefault();}});
 window.addEventListener('keyup',e=>{if(e.code==='Space')hold=false;});
@@ -781,10 +897,10 @@ function tryPaint(x,y){
 }
 function addFT(t,x,y,c,size,s){FT.push({t,x,y,c,size,s:!!s,life:1.1,max:1.1});}
 
-/* ---------- checkout / flow ---------- */
+/* ---------- checkout / level flow ---------- */
 function checkout(angry){
   if(!C||C.done)return;
-  C.done=true;M=null;Q=null;hold=false;scrubbing=false;$('swatches').hidden=true;closeChat();updateTray();
+  C.done=true;M=null;Q=null;hold=false;scrubbing=false;peeling=false;$('swatches').hidden=true;closeChat();updateTray();
   const k=(1+.12*S.up.deco)*(C.has('picky')?1.3:1);
   const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k):0}));
   let sum=rows.reduce((a,r)=>a+r.amt,0);
@@ -804,8 +920,9 @@ function checkout(angry){
   setTimeout(()=>showReceipt(rows,tip,cut,total,stars,line,angry,extras),angry?500:350);
 }
 function showReceipt(rows,tip,cut,total,stars,line,angry,extras){
-  const last=custIdx+1>=dayCount();
+  const last=doneCount+1+missed>=dayCount();
   const rr=rows.map(r=>`<div class="row"><span>${STEPS[r.s].n}${r.q!=null&&r.q<.99?` <span class="x">×${Math.round(r.q*100)}%</span>`:''}</span><span class="dots"></span><span>${r.q==null?'<span class="x">未做</span>':'¥'+r.amt}</span></div>`).join('');
+  const g=starGoals(dayGoal),got=g.filter(x=>dayEarn>=x).length;
   open(`<h2>${C.name} 的账单</h2>
   <div class="stars" aria-label="${stars} 星">${'★'.repeat(stars)}${'☆'.repeat(5-stars)}</div>
   <div class="say">「${line}」</div>
@@ -815,76 +932,96 @@ function showReceipt(rows,tip,cut,total,stars,line,angry,extras){
     ${angry?`<div class="row"><span>气走了，只付一半</span><span class="dots"></span><span>−¥${cut}</span></div>`:''}
     <div class="row total"><span>实收</span><span class="dots"></span><span>¥${total}</span></div>
   </div>
-  <p class="muted">今日 ¥${dayEarn} / 目标 ¥${dayGoal}</p>
-  <div class="btns"><button class="btn" id="nextBtn">${last?'打烊盘点':'下一位客人'}</button></div>`);
-  $('nextBtn').onclick=()=>{custIdx++;if(custIdx<dayCount()){close();newCustomer();}else showDayEnd();};
+  ${lvBar(got)}
+  <div class="btns"><button class="btn" id="nextBtn">${last?'本关结算':'下一位客人'}</button></div>`);
+  $('nextBtn').onclick=()=>{doneCount++;if(doneCount+missed>=dayCount())showDayEnd();else{close();nextCustomer();}};
+}
+function lvBar(got){
+  const g=starGoals(dayGoal),pct=Math.min(100,dayEarn/g.at(2)*100);
+  return`<div class="lvbar"><div class="lvt"><span>本关 ¥${dayEarn}</span><span class="lvs">${'★'.repeat(got)}${'☆'.repeat(3-got)}</span></div><div class="lvtrack"><i style="width:${pct}%"></i>${g.map((x,i)=>`<b style="left:${x/g.at(2)*100}%" title="${i+1} 星 ¥${x}"></b>`).join('')}</div><div class="lvg">${g.map((x,i)=>`<span>${'★'.repeat(i+1)} ¥${x}</span>`).join('')}</div></div>`;
 }
 function showDayEnd(){
-  const avg=dayStars.length?(dayStars.reduce((a,b)=>a+b,0)/dayStars.length):0;
-  const met=dayEarn>=dayGoal,bonus=met?Math.round(dayGoal*.2):0;
-  if(bonus){S.coins+=bonus;hud();}
-  const comment=met?(avg>=4.5?'荷塘里都在传你的手艺。':'目标达成，明天会更忙。'):avg>=3.5?'口碑不错，就是钱还差一点。':'今天有点砸招牌…';
-  S.day++;save();
-  open(`<h2>第 ${S.day-1} 天打烊</h2>
+  const g=starGoals(dayGoal),stars=g.filter(x=>dayEarn>=x).length,avg=dayStars.length?(dayStars.reduce((a,b)=>a+b,0)/dayStars.length):0;
+  const lv=S.day;
+  if(!stars){
+    open(`<h2>第 ${lv} 关没过</h2>
+    <div class="bigstars dim">☆☆☆</div>
+    <div class="receipt">
+      <div class="row"><span>本关收入</span><span class="dots"></span><span>¥${dayEarn}</span></div>
+      <div class="row"><span>1 星需要</span><span class="dots"></span><span>¥${g.at(0)}</span></div>
+      <div class="row"><span>服务客人</span><span class="dots"></span><span>${dayStars.length} 位${missed?` · 走掉 ${missed} 位`:''}</span></div>
+    </div>
+    <p>${missed?'排队的客人等太久走了，做快一点，别让长凳坐满。':'再试一次，做得好的客人给的小费更多。'}</p>
+    <div class="btns"><button class="btn" id="retryBtn">再来一次</button></div>`);
+    $('retryBtn').onclick=startDay;return;
+  }
+  const bonus=stars===3?Math.round(dayEarn*.25):stars===2?Math.round(dayEarn*.1):0;
+  S.coins+=bonus;S.best=S.best||{};const first=!S.best[lv];S.best[lv]=Math.max(S.best[lv]||0,stars);
+  S.day++;save();hud();
+  const nextNew=ORDER.find(s=>UNLOCK[s]===S.day);
+  open(`<h2>第 ${lv} 关完成</h2>
+  <div class="bigstars">${'★'.repeat(stars)}<span>${'★'.repeat(3-stars)}</span></div>
   <div class="receipt">
-    <div class="row"><span>服务客人</span><span class="dots"></span><span>${dayStars.length} 位</span></div>
+    <div class="row"><span>服务客人</span><span class="dots"></span><span>${dayStars.length} 位${missed?` · 走掉 ${missed} 位`:''}</span></div>
     <div class="row"><span>平均评分</span><span class="dots"></span><span>★ ${avg.toFixed(1)}</span></div>
-    <div class="row"><span>营业目标</span><span class="dots"></span><span>¥${dayGoal} ${met?'✓':'✗'}</span></div>
-    ${bonus?`<div class="row"><span>达标奖金</span><span class="dots"></span><span>¥${bonus}</span></div>`:''}
-    <div class="row total"><span>今日营业额</span><span class="dots"></span><span>¥${dayEarn+bonus}</span></div>
+    <div class="row"><span>本关收入</span><span class="dots"></span><span>¥${dayEarn}</span></div>
+    ${bonus?`<div class="row"><span>${stars} 星奖励</span><span class="dots"></span><span>+¥${bonus}</span></div>`:''}
+    <div class="row total"><span>钱包</span><span class="dots"></span><span>¥${S.coins}</span></div>
   </div>
-  <p>${comment}</p>
-  <div class="btns"><button class="btn" id="shopBtn">去采购升级</button></div>`);
+  ${stars<3?`<p class="muted">3 星要 ¥${g.at(2)}，可以之后回来再刷。</p>`:''}
+  ${nextNew?`<div class="unlockcard"><svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[nextNew]}</svg><div><b>下一关解锁：${STEPS[nextNew].n}</b><span>${UNLOCK_HOW[nextNew]}</span></div></div>`:''}
+  <div class="btns"><button class="btn" id="shopBtn">升级工具</button></div>`);
   $('shopBtn').onclick=showShop;
 }
 function showShop(){
-  const items=UPG.map(u=>{const lv=S.up[u.id],max=lv>=u.max,cost=upCost(u,lv);
-    return `<div class="item"><b>${u.n}</b><button class="buy" data-u="${u.id}" ${max||S.coins<cost?'disabled':''}>${max?'已满级':'¥'+cost}</button>
-    <span class="d">${u.d}</span><div class="pips">${Array.from({length:u.max},(_,i)=>`<i class="${i<lv?'on':''}"></i>`).join('')}</div></div>`;}).join('');
-  open(`<h2>采购升级</h2><p class="muted">钱包 <b style="color:var(--sign);font-size:16px">¥${S.coins}</b> · 明天要接待 ${dayCount()} 位客人</p>
+  const items=UPG.map(u=>{const lv=S.up[u.id],max=lv>=u.max,cost=upCost(u,lv),locked=u.svc&&UNLOCK[u.svc]>S.day;
+    return `<div class="item ${locked?'lock':''}"><b>${u.n} · ${u.lv.at(lv)}</b><button class="buy" data-u="${u.id}" ${locked||max||S.coins<cost?'disabled':''}>${locked?`第${UNLOCK[u.svc]}关`:max?'已满级':'¥'+cost}</button>
+    <span class="d">${max?u.d:`下一级：${u.lv.at(lv+1)} · ${u.d}`}</span><div class="pips">${Array.from({length:u.max},(_,i)=>`<i class="${i<lv?'on':''}"></i>`).join('')}</div></div>`;}).join('');
+  open(`<h2>升级工具</h2><p class="muted">钱包 <b style="color:var(--sign);font-size:16px">¥${S.coins}</b></p>
   <div class="shop" id="shopList">${items}</div>
-  <div class="btns"><button class="btn" id="goBtn">开始第 ${S.day} 天营业</button></div>`);
+  <div class="btns"><button class="btn" id="goBtn">开始第 ${S.day} 关</button></div>`);
   $('shopList').onclick=e=>{const b=e.target.closest('.buy');if(!b||b.disabled)return;const u=UPG.find(x=>x.id===b.dataset.u);const c=upCost(u,S.up[u.id]);if(S.coins<c)return;S.coins-=c;S.up[u.id]++;save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=startDay;
 }
-function startDay(){custIdx=0;dayEarn=0;dayStars=[];dayGoal=goalFor(S.day);showDayIntro();}
-function showDayIntro(){
-  const news=NEWS[S.day]||(S.day>8?['客人更多、更急，泥更硬、按摩更快']:[]);
-  open(`<h2>第 ${S.day} 天</h2>
+function startDay(){dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
+function showLevelIntro(){
+  const lv=S.day,g=starGoals(dayGoal),neu=ORDER.find(s=>UNLOCK[s]===lv&&lv>1);
+  const news=(NEWS[lv]||(lv>13?['客人更多、更急，泥更硬、按摩更快']:[])).filter(x=>!neu||!x.startsWith('解锁'));
+  open(`<h2>第 ${lv} 关</h2>
+  ${neu?`<div class="unlockcard new"><svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[neu]}</svg><div><b>新项目：${STEPS[neu].n}</b><span>${UNLOCK_HOW[neu]}</span></div></div>`:''}
   <div class="receipt">
-    <div class="row"><span>今日客人</span><span class="dots"></span><span>${dayCount()} 位</span></div>
-    <div class="row"><span>营业目标</span><span class="dots"></span><span>¥${dayGoal}</span></div>
-    <div class="row"><span>达标奖金</span><span class="dots"></span><span>¥${Math.round(dayGoal*.2)}</span></div>
+    <div class="row"><span>今天的客人</span><span class="dots"></span><span>${dayCount()} 位</span></div>
+    ${g.map((x,i)=>`<div class="row"><span>${'★'.repeat(i+1)}</span><span class="dots"></span><span>¥${x}</span></div>`).join('')}
   </div>
-  ${news.length?`<p><b>今日新内容</b></p><ul class="news">${news.map(n=>`<li>${n}</li>`).join('')}</ul>`:''}
-  <div class="btns"><button class="btn" id="openBtn">开门迎客</button></div>`);
-  $('openBtn').onclick=()=>{close();newCustomer();hud();};
+  ${news.length?`<ul class="news">${news.map(n=>`<li>${n}</li>`).join('')}</ul>`:''}
+  <div class="btns"><button class="btn" id="openBtn">开始营业</button></div>`);
+  $('openBtn').onclick=()=>{close();spawned=1;seat(makeSpec());arriveT=cfg(S.day).arrive;hud();};
 }
 function showTitle(){
   const fresh=S.day===1&&S.served===0;
   open(`<div class="bigsign"><b>奶蛙足道</b><span>荷塘边第一家修脚堂</span></div>
-  <p>荷塘里的奶蛙们天天在泥里蹦，脚底黑得像锅底。你接手了这家小店：看客人的单子，按顺序选对工具，把每只脚收拾干净，赚钱升级店面。</p>
+  <p>荷塘里的奶蛙们天天在泥里蹦，脚底黑得像锅底。你接手了这家小店：客人陆续到店排队，按单子选对工具，把每只脚收拾干净。过关拿星星，解锁更多足道项目。</p>
   <div class="menu"><span class="h">价目表</span>
-    ${ORDER.map(s=>`<span>${STEPS[s].n}${UNLOCK[s]>1?` <span class="x">第${UNLOCK[s]}天</span>`:''}</span><span>¥${STEPS[s].p}</span>`).join('')}
+    ${ORDER.map(s=>`<span>${STEPS[s].n}${UNLOCK[s]>1?` <span class="x">第${UNLOCK[s]}关</span>`:''}</span><span>¥${STEPS[s].p}</span>`).join('')}
   </div>
-  <p class="muted">每天会解锁新手艺和新花样，客人也会越来越挑：有人怕烫、有人怕痒、有人中途改单。拿错工具、夹到肉都会扣耐心，耐心见底客人就气走了。</p>
-  <div class="btns"><button class="btn" id="startBtn">${fresh?'开张营业':'继续第 '+S.day+' 天'}</button>${fresh?'':'<button class="btn ghost" id="resetBtn">清空存档</button>'}</div>`);
+  <p class="muted">拿错工具、夹到肉都会扣耐心，耐心见底客人就气走了；长凳上的客人等太久也会走。</p>
+  <div class="btns"><button class="btn" id="startBtn">${fresh?'开张营业':'继续第 '+S.day+' 关'}</button>${fresh?'':'<button class="btn ghost" id="resetBtn">清空存档</button>'}</div>`);
   $('startBtn').onclick=()=>{ac();startDay();};
   const rb=$('resetBtn');if(rb){let arm=false;rb.onclick=()=>{if(!arm){arm=true;rb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();showTitle();};}
 }
-function open(html){$('panel').innerHTML=html;$('ov').hidden=false;paused=true;hold=false;scrubbing=false;const b=$('panel').querySelector('.btn');if(b)b.focus({preventScroll:true});}
+function open(html){$('panel').innerHTML=html;$('ov').hidden=false;paused=true;hold=false;scrubbing=false;peeling=false;const b=$('panel').querySelector('.btn');if(b)b.focus({preventScroll:true});}
 function close(){$('ov').hidden=true;paused=false;}
 
 function showMenu(){
   if(!$('ov').hidden)return;
   open(`<h2>暂停</h2>
-  <p class="muted">第 ${S.day} 天 · 钱包 ¥${S.coins} · 累计服务 ${S.served} 位客人</p>
+  <p class="muted">第 ${S.day} 关 · 钱包 ¥${S.coins} · 共 ${totalStars()} 颗星 · 累计服务 ${S.served} 位客人</p>
   <div class="btns"><button class="btn" id="resumeBtn">继续营业</button></div>
-  <div class="btns"><button class="btn ghost" id="restartBtn">重开今天</button><button class="btn ghost" id="wipeBtn">清空存档，从第 1 天开始</button></div>`);
+  <div class="btns"><button class="btn ghost" id="restartBtn">重开本关</button><button class="btn ghost" id="wipeBtn">清空存档，从第 1 关开始</button></div>`);
   $('resumeBtn').onclick=close;
   $('restartBtn').onclick=()=>{S.coins-=dayEarn;if(S.coins<0)S.coins=0;S.served-=dayStars.length;save();startDay();};
   let arm=false;const wb=$('wipeBtn');
-  wb.onclick=()=>{if(!arm){arm=true;wb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();custIdx=0;dayEarn=0;dayStars=[];dayGoal=goalFor(1);newCustomer();entry=1;showTitle();};
+  wb.onclick=()=>{if(!arm){arm=true;wb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();BQ=[];dayGoal=goalFor(1);seat(makeSpec());entry=1;showTitle();};
 }
 $('menuBtn').onclick=()=>{ac();showMenu();};
 $('muteBtn').onclick=()=>{S.muted=!S.muted;save();ac();setMuteIcon();};
@@ -901,6 +1038,8 @@ function update(dt,t){
   const sw=M&&M.type==='trim'&&(K.sway||C.has('ticklish'))?1:0;swayAmt+=(sw-swayAmt)*Math.min(1,dt*3);
   kick=Math.max(0,kick-dt*2.5);
   FO.x=Math.sin(t*1.6)*10*swayAmt;FO.y=Math.sin(t*2.3)*5*swayAmt-Math.sin(kick*Math.PI)*22;
+  scrapeT-=dt;
+  if(peelFade>0){peelFade-=dt*2;if(peelFade<=0){peelFade=0;plc.setTransform(1,0,0,1,0,0);plc.clearRect(0,0,PL.width,PL.height);}}
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
@@ -908,6 +1047,9 @@ function update(dt,t){
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
     if(!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
     if(Q){Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
+    arriveT-=dt;if(arriveT<=0&&spawned<dayCount()&&BQ.length<3){BQ.push(makeSpec());spawned++;arriveT=K.arrive*(.8+Math.random()*.4);renderBench();sfx.croak();}
+    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];sp.wpat-=dt*100/K.wait;if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
+    updateBenchBars();
     if(C.has('chatty')&&!chatOpen&&!Q&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
     if(chatOpen){chatOpen.t-=dt;const tm=$('chatTm');if(tm)tm.style.width=(chatOpen.t/chatOpen.max*100)+'%';if(chatOpen.t<=0)answerChat(-1);}
     if(C.pat<=0){C.pat=0;setFace('angry',99);sfx.bad();checkout(true);}
@@ -925,6 +1067,8 @@ function update(dt,t){
       if(Math.random()<dt*(M.T-20)*.5){const top=BT0-BTR*ease(bucket);PS.push({k:'steam',x:BX-100+Math.random()*200,y:top-4,vx:(Math.random()-.5)*10,vy:-25-Math.random()*20,life:1.6,max:1.6,r:6+Math.random()*6});}
       progress(M.prog/M.need);
       if(M.prog>=M.need)finish('soak',clamp(1-M.over*.2-M.herbWrong*.15,.4,1));
+    }else if(M.type==='peel'){
+      M.mt-=dt;if(M.dirty&&M.mt<=0){M.mt=.16;M.dirty=false;M.clean=1-countCanvas(PL)/peelInit;progress(M.clean/.9);if(M.clean>=.9){curlDrop();peeling=false;finish('peel',Math.max(.4,1-.12*M.bad));}}
     }else if(M.type==='scrub'){
       M.mt-=dt;M.tk=Math.max(0,M.tk-dt*.35);
       if(M.dirty&&M.mt<=0){M.mt=.18;M.dirty=false;M.clean=1-countDirt()/dirtInit;
@@ -941,7 +1085,7 @@ function update(dt,t){
     }
   }
   for(let i=PS.length-1;i>=0;i--){const p=PS[i];p.life-=dt;if(p.life<=0){PS.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;
-    if(p.k==='mud'||p.k==='chip')p.vy+=420*dt;if(p.k==='spark')p.vy+=200*dt;if(p.k==='steam')p.r+=8*dt;if(p.rot!=null)p.rot+=p.vr*dt;}
+    if(p.k==='mud'||p.k==='chip'||p.k==='curl')p.vy+=420*dt;if(p.k==='spark')p.vy+=200*dt;if(p.k==='steam')p.r+=8*dt;if(p.rot!=null)p.rot+=p.vr*dt;}
   for(let i=FT.length-1;i>=0;i--){const f=FT[i];f.life-=dt;f.y-=28*dt;if(f.life<=0)FT.splice(i,1);}
   const pb=$('patBar');const pv=clamp(C.pat,0,100);pb.style.width=pv+'%';pb.style.background=pv>60?'var(--good)':pv>30?'var(--warn)':'var(--bad)';
 }
@@ -1064,10 +1208,12 @@ function headAcc(c){
 }
 function drawFoot(c,t){
   drawImg(c,C.footImg||IMG.fclean,ART.foot);
-  if(fadeDirt>0||C.q.scrub==null){c.save();if(fadeDirt>0)c.globalAlpha=clamp(fadeDirt,0,1);c.drawImage(D,0,0,W,H);
+  if(C.steps.includes('peel')&&(C.q.peel==null||peelFade>0)){c.save();if(peelFade>0)c.globalAlpha=clamp(peelFade,0,1);c.drawImage(PL,0,0,W,H);c.restore();}
+  if(fadeDirt>0||(C.steps.includes('scrub')&&C.q.scrub==null)){c.save();if(fadeDirt>0)c.globalAlpha=clamp(fadeDirt,0,1);c.drawImage(D,0,0,W,H);
     for(const l of C.lumps)if(l.hp>0)drawLump(c,l,t);c.restore();}
   if(C.q.scrub!=null&&C.callus&&C.callus.hp>0)drawCallus(c,C.callus,t);
   if(M&&M.type==='scrub')drawTickles(c,t);
+  if(M&&M.type==='peel')drawPeelGuides(c,t);
   for(let i=0;i<TIPS.length;i++)drawNail(c,i,t);
 }
 function drawLump(c,l,t){
@@ -1099,7 +1245,7 @@ function drawTickleMeter(c){
 }
 function drawNail(c,i,t){
   const n=C.nails[i],[dx,dy]=toeDir(i),tp=TIPS[i];
-  const dirty=C.q.scrub==null;
+  const dirty=C.steps.includes('scrub')&&C.q.scrub==null;
   if(n.paint){c.fillStyle=n.paint;c.strokeStyle='#6b3f12';c.lineWidth=1.4;circ(c,tp[0]+dx*2,tp[1]+dy*2,8.5);c.beginPath();c.arc(tp[0]+dx*2,tp[1]+dy*2,8.5,0,TAU);c.stroke();
     c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.ellipse(tp[0]+dx*2-3,tp[1]+dy*2-3,2.2,3.6,-.6,0,TAU);c.fill();}
   c.save();c.translate(tp[0]+dx*9,tp[1]+dy*9);c.rotate(Math.atan2(dy,dx));
@@ -1171,6 +1317,7 @@ function drawParticles(c,scr){
     else if(p.k==='steam'){c.fillStyle=`rgba(255,255,255,${.35*a})`;circ(c,p.x,p.y,p.r);}
     else if(p.k==='chip'){c.save();c.translate(p.x,p.y);c.rotate(p.rot);c.fillStyle='#e9dfbd';c.strokeStyle='#5e4a2a';c.lineWidth=1.5;c.beginPath();c.moveTo(-p.r,0);c.quadraticCurveTo(0,-6,p.r,0);c.quadraticCurveTo(0,-2,-p.r,0);c.fill();c.stroke();c.restore();}
     else if(p.k==='spark'){c.fillStyle=p.c;c.globalAlpha=a;c.beginPath();for(let k=0;k<8;k++){const r=k%2?p.r*.4:p.r,an=k*Math.PI/4;c.lineTo(p.x+Math.cos(an)*r,p.y+Math.sin(an)*r);}c.fill();c.globalAlpha=1;}
+    else if(p.k==='curl'){c.globalAlpha=Math.min(1,a*2);drawCurl(c,p.x,p.y,p.r,p.rot);c.globalAlpha=1;}
     else if(p.k==='heart'){c.globalAlpha=a;c.fillStyle='#f06292';c.font=`${p.r*1.6}px sans-serif`;c.textAlign='center';c.fillText('♥',p.x,p.y);c.globalAlpha=1;}
   }
   for(const f of FT){if(f.s!==scr)continue;const a=clamp(f.life/f.max*1.6,0,1);c.globalAlpha=a;c.font=`${f.size}px ${DISPLAY}`;c.textAlign='center';c.lineWidth=4;c.lineJoin='round';c.strokeStyle='rgba(30,20,10,.85)';c.strokeText(f.t,f.x,f.y);c.fillStyle=f.c;c.fillText(f.t,f.x,f.y);c.globalAlpha=1;}
@@ -1189,6 +1336,7 @@ function draw(t){
   if(bucket>.01)drawBucketFront(ctx,bucket,t);
   if(M&&M.type==='massage')drawMassage(ctx,t);
   if(M&&M.type==='paint')drawPaintHints(ctx,t);
+  if(M&&M.type==='peel'&&ptrF){if(peeling)drawCurl(ctx,M.curl.x,M.curl.y,M.curl.s,0);drawBlade(ctx,ptrF[0],ptrF[1]);}
   if(M&&M.type==='scrub'&&ptrF){const r=15+S.up.brush*5;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(ptrF[0],ptrF[1],r,0,TAU);ctx.stroke();ctx.setLineDash([]);}
   drawParticles(ctx,false);
   ctx.restore();
@@ -1202,6 +1350,6 @@ let last=performance.now();
 function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt,now/1000);draw(now/1000);requestAnimationFrame(loop);}
 
 /* ---------- boot ---------- */
-setMuteIcon();hud();requestAnimationFrame(loop);loadArt().then(()=>{buildMask();dayGoal=goalFor(S.day);newCustomer();entry=1;showTitle();});
+setMuteIcon();hud();requestAnimationFrame(loop);loadArt().then(()=>{buildMask();dayGoal=goalFor(S.day);seat(makeSpec());entry=1;showTitle();});
 })();
 </script>
