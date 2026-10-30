@@ -20,7 +20,7 @@ html,body{height:100%}
 body{background:var(--deep);color:var(--ink);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-#app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:8px;padding-block:8px;
+#app{position:relative;height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:8px;padding-block:8px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   background-color:var(--tile);
   background-image:linear-gradient(var(--tile-line) 2px,transparent 2px),linear-gradient(90deg,var(--tile-line) 2px,transparent 2px);
@@ -131,6 +131,38 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .dg.on{border-color:var(--sign);background:#fde7e3}
 .dg[disabled]{opacity:.4;cursor:not-allowed}
 
+.coach{position:absolute;inset:0;z-index:15;pointer-events:none}
+.coach.notarget{background:rgba(10,24,22,.55)}
+.coach.under{display:none}
+.cring{position:absolute;border-radius:14px;box-shadow:0 0 0 3px var(--gold),0 0 0 9999px rgba(10,24,22,.5);transition:all .25s;animation:cr 1.4s infinite}
+@keyframes cr{50%{box-shadow:0 0 0 6px var(--gold),0 0 0 9999px rgba(10,24,22,.5)}}
+.chand{position:absolute;width:40px;height:50px;margin-left:-14px;margin-top:-4px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.chand svg{width:100%;height:100%}
+.chand::before{content:"";position:absolute;left:4px;top:-6px;width:20px;height:20px;border-radius:50%;border:3px solid #fff;opacity:0}
+.chand.g-tap{animation:gtap 1.1s infinite}
+.chand.g-tap::before{animation:grip 1.1s infinite}
+@keyframes gtap{0%,100%{transform:translate(6px,12px)}40%,55%{transform:translate(0,0)}}
+@keyframes grip{40%{opacity:.9;transform:scale(.4)}80%{opacity:0;transform:scale(1.8)}}
+.chand.g-hold{animation:ghold 2s infinite}
+.chand.g-hold::before{animation:ghr 2s infinite}
+@keyframes ghold{0%{transform:translate(6px,12px)}15%,85%{transform:translate(0,0)}100%{transform:translate(6px,12px)}}
+@keyframes ghr{15%{opacity:.9;transform:scale(.4)}85%{opacity:.7;transform:scale(2.4)}100%{opacity:0}}
+.chand.g-swipe{animation:gsw 1.4s ease-in-out infinite}
+@keyframes gsw{0%,100%{transform:translateX(-55px)}50%{transform:translateX(55px)}}
+.chand.g-down{animation:gdn 1.3s ease-in infinite}
+@keyframes gdn{0%{transform:translateY(-6px);opacity:0}15%{opacity:1}80%{transform:translateY(46px);opacity:1}100%{transform:translateY(52px);opacity:0}}
+.cbub{position:absolute;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));top:30%;background:var(--paper);color:var(--ink);border-radius:14px;padding:12px 14px;box-shadow:0 6px 0 rgba(0,0,0,.2),0 0 0 3px var(--gold);pointer-events:auto;display:flex;flex-direction:column;gap:8px;max-width:440px;margin:0 auto;animation:cbin .3s}
+.coach .cbub[style*="bottom"]{top:auto}
+@keyframes cbin{from{transform:translateY(8px);opacity:0}}
+.cbub p{margin:0;font-size:15px;line-height:1.55}
+.cbub b{color:var(--sign)}
+.cstep{font-size:11px;letter-spacing:.08em;color:var(--ink-soft)}
+.cbtns{display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.cbtns:has(.cbtn[hidden]):has(.cskip[hidden]){display:none}
+.cbtn{border:0;border-radius:10px;padding:8px 16px;background:var(--sign);color:var(--paper);font-family:var(--display);font-size:17px;box-shadow:0 3px 0 #7d1d18}
+.cskip{border:0;background:transparent;color:var(--ink-soft);font-size:12.5px;text-decoration:underline;margin-right:auto}
+@media (prefers-reduced-motion: reduce){.chand,.chand::before,.cring{animation:none!important}.chand::before{opacity:.8}}
+
 /* tray */
 .tray{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--wood-dark);padding:6px;border-radius:12px;box-shadow:inset 0 2px 0 rgba(255,255,255,.12)}
 .tool{border:0;border-radius:9px;background:linear-gradient(var(--wood-light),var(--wood));box-shadow:0 3px 0 #4d2c12;padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;color:var(--ink)}
@@ -215,6 +247,11 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   <nav class="tray" id="tray" aria-label="工具"></nav>
 </div>
 
+<div class="coach" id="coach" hidden>
+    <div class="cring" id="cring" hidden></div>
+    <div class="chand" id="chand" hidden><svg viewBox="0 0 40 50" aria-hidden="true"><path d="M14 4c3 0 5 2 5 5v14l3-1c2-.5 4 .5 4.5 2.5l.5 1.5 2-.5c2-.4 3.8.8 4.2 2.6l.3 1.4 1.4-.2c2-.2 3.6 1.2 3.6 3.2V40c0 5-4 9-9 9H20c-3 0-5.6-1.5-7.2-4L5 33c-1.2-2-.4-4.5 1.6-5.4 1.6-.7 3.4-.3 4.6 1L12 30V9c0-3 0-5 2-5z" fill="#fffaf0" stroke="#2b2118" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+    <div class="cbub" id="cbub"><span class="cstep" id="cbStep"></span><p id="cbText"></p><div class="cbtns"><button class="cskip" id="cbSkip">跳过教学</button><button class="cbtn" id="cbBtn">下一步</button></div></div>
+  </div>
 <div class="overlay" id="ov" hidden><div class="panel" id="panel"></div></div>
 
 <script>
@@ -276,7 +313,7 @@ const ease=k=>1-Math.pow(1-k,3);
 
 /* ---------- save ---------- */
 const KEY='naiwa-footspa-v1';
-const def=()=>({coins:0,day:1,up:{brush:0,kettle:0,clip:0,blade:0,aroma:0,deco:0},served:0,muted:false,best:{}});
+const def=()=>({coins:0,day:1,up:{brush:0,kettle:0,clip:0,blade:0,aroma:0,deco:0},served:0,muted:false,best:{},tut:false,seen:{}});
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.up)return Object.assign(def(),s,{up:Object.assign(def().up,s.up)});}catch(e){}return def();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 let S=load();
@@ -398,7 +435,7 @@ function qteHit(){
   if(Q.got>=Q.need)qteEnd(true);
 }
 function qteEnd(win){
-  if(!Q)return;const k=Q.k,[x,y]=qPos();Q=null;
+  if(!Q)return;const k=Q.k,[x,y]=qPos();Q=null;tutEv('qte',win);
   if(win){C.pat=Math.min(100,C.pat+6);C.qteTip+=4;sfx.coin();addFT('反应真快 +¥4',x,y-30,'#f5c95c',17,1);setFace('happy',1.2);
     say({sneeze:'阿——嚏！谢谢，好险没喷你身上。',fly:'哎，好险好险。',cramp:'呼……不抽了，谢谢。',slip:'稳住了，手劲不错。'}[k]);
     if(k==='fly')for(let i=0;i<5;i++)PS.push({k:'spark',s:1,x,y,vx:(Math.random()-.5)*120,vy:-60-Math.random()*60,life:.6,max:.6,r:3,c:'#ffffff'});}
@@ -667,6 +704,7 @@ function hintTool(id){const b=$('tool-'+id);if(b)b.classList.add('hint');}
 function useTool(id,btn){
   ac();
   if(paused||!C||C.done||entry<1)return;
+  if(TUT.on){if(!TUT.expect)return;if(id!==TUT.expect){flashInstr('先点亮起来的那个');sfx.bad();return;}}
   if(id!=='towel'&&UNLOCK[id]>S.day){flashInstr(`「${STEPS[id].n}」第 ${UNLOCK[id]} 天解锁`);return;}
   if(M){flashInstr('先把手上这一步做完');return;}
   if(id==='towel'){
@@ -708,8 +746,10 @@ function startMini(t){
   }
   if(t==='paint'){M={type:'paint',color:null,wrong:0,t0:now};renderSwatches();$('swatches').hidden=false;setInstr(`照右上角卡片涂：${C.paint.label}。先选颜色，再点脚趾`);}
   progress(0);updateTray();
+  tutEv('mini',t);firstHint(t);
 }
 function finish(step,q){
+  hintOff();tutEv('finish',step);
   C.q[step]=q;C.si++;
   const el=(performance.now()-M.t0)/1000;
   M=null;hold=false;scrubbing=false;$('swatches').hidden=true;
@@ -787,6 +827,7 @@ function clawMid(i){const n=C.nails[i],[dx,dy]=toeDir(i),t=TIPS[i];return[t[0]+d
 /* ---------- interactions ---------- */
 function ptOf(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/sc,(e.clientY-r.top-oy)/sc];}
 cv.addEventListener('pointerdown',e=>{
+  if(TUT.hint&&performance.now()-TUT.hintT>600)hintOff();
   ac();if(paused||!C||C.done)return;
   try{cv.setPointerCapture(e.pointerId);}catch(_){}
   ptr=ptOf(e);const [x,y]=toFoot(ptr[0],ptr[1]);ptrF=[x,y];
@@ -911,6 +952,7 @@ function addFT(t,x,y,c,size,s){FT.push({t,x,y,c,size,s:!!s,life:1.1,max:1.1});}
 /* ---------- checkout / level flow ---------- */
 function checkout(angry){
   if(!C||C.done)return;
+  tutEv('checkout');hintOff();
   C.done=true;M=null;Q=null;hold=false;scrubbing=false;peeling=false;$('swatches').hidden=true;closeChat();updateTray();
   const k=(1+.12*S.up.deco)*(C.has('picky')?1.3:1);
   const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k):0}));
@@ -945,7 +987,7 @@ function showReceipt(rows,tip,cut,total,stars,line,angry,extras){
   </div>
   ${lvBar(got)}
   <div class="btns"><button class="btn" id="nextBtn">${DBG.solo?'再来一位（试玩中）':last?'本关结算':'下一位客人'}</button></div>`);
-  $('nextBtn').onclick=()=>{if(DBG.solo){close();seatSolo(DBG.solo);return;}doneCount++;if(doneCount+missed>=dayCount())showDayEnd();else{close();nextCustomer();}};
+  $('nextBtn').onclick=()=>{if(TUT.on){tutReceiptNext();return;}if(DBG.solo){close();seatSolo(DBG.solo);return;}doneCount++;if(doneCount+missed>=dayCount())showDayEnd();else{close();nextCustomer();}};
 }
 function lvBar(got){
   const g=starGoals(dayGoal),pct=Math.min(100,dayEarn/g.at(2)*100);
@@ -1017,7 +1059,7 @@ function showTitle(){
   </div>
   <p class="muted">拿错工具、夹到肉都会扣耐心，耐心见底客人就气走了；长凳上的客人等太久也会走。</p>
   <div class="btns"><button class="btn" id="startBtn">${fresh?'开张营业':'继续第 '+S.day+' 关'}</button>${fresh?'':'<button class="btn ghost" id="resetBtn">清空存档</button>'}</div>`);
-  $('startBtn').onclick=()=>{ac();startDay();};
+  $('startBtn').onclick=()=>{ac();if(!S.tut&&S.served===0)startTutorial();else startDay();};
   const rb=$('resetBtn');if(rb){let arm=false;rb.onclick=()=>{if(!arm){arm=true;rb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();showTitle();};}
 }
 function open(html){$('panel').onclick=null;$('panel').innerHTML=html;$('ov').hidden=false;paused=true;hold=false;scrubbing=false;peeling=false;const b=$('panel').querySelector('.btn');if(b)b.focus({preventScroll:true});}
@@ -1064,6 +1106,8 @@ function showDebug(){
       <button class="dg" data-act="event" ${C&&!C.done?'':'disabled'}>触发客人改单</button>
       <button class="dg" data-act="chat" ${C&&!C.done?'':'disabled'}>触发聊天</button>
       <button class="dg" data-act="queue">长凳坐满 3 位</button>
+      <button class="dg" data-act="tut">重玩新手教学</button>
+      <button class="dg" data-act="hints">重看新项目提示</button>
     </div></div>
   <div class="btns">${DBG.solo?'<button class="btn ghost" id="soloExit">退出试玩，重开本关</button>':''}<button class="btn" id="dbgBack">返回游戏</button></div>`);
   $('panel').onclick=e=>{
@@ -1073,6 +1117,8 @@ function showDebug(){
     const a=b.dataset.act;
     if(a==='coins'){S.coins+=1000;save();hud();sfx.coin();showDebug();}
     else if(a==='god'){DBG.god=!DBG.god;showDebug();}
+    else if(a==='tut'){$('panel').onclick=null;startTutorial();}
+    else if(a==='hints'){S.seen={soak:1,scrub:1};save();b.textContent='已重置，下次用新项目会再提示';b.disabled=true;}
     else if(a==='queue'){$('panel').onclick=null;close();while(BQ.length<3){BQ.push(makeSpec());}renderBench();}
     else if(a==='qte'){$('panel').onclick=null;close();setTimeout(()=>{if(C&&!C.done){Q=null;startQTE();}},250);}
     else if(a==='event'){$('panel').onclick=null;close();setTimeout(()=>{if(C&&!C.done&&!M)serviceEvent();else flashInstr('先把手上这一步做完再触发改单');},250);}
@@ -1081,6 +1127,97 @@ function showDebug(){
   if($('soloExit'))$('soloExit').onclick=()=>{$('panel').onclick=null;DBG.solo=null;startDay();};
   $('dbgBack').onclick=()=>{$('panel').onclick=null;close();};
 }
+
+
+/* ---------- tutorial + first-time hints ---------- */
+const TUT={on:false,step:0,expect:null,hint:null,hintT:0};
+const COACH={el:null,target:null,gesture:null,gpos:null,text:'',btn:null,onBtn:null};
+function stageXY(x,y){const r=cv.getBoundingClientRect(),a=$('app').getBoundingClientRect();return[r.left-a.left+ox+x*sc,r.top-a.top+oy+y*sc];}
+function coach(o){
+  COACH.target=o.target||null;COACH.gesture=o.gesture||null;COACH.gpos=o.gpos||null;COACH.btn=o.btn||null;COACH.onBtn=o.onBtn||null;
+  const c=$('coach');c.hidden=false;
+  $('cbText').innerHTML=o.text;$('cbStep').textContent=o.stepLabel||'';
+  const b=$('cbBtn');b.hidden=!o.btn;if(o.btn)b.textContent=o.btn;
+  const h=$('chand');h.className='chand'+(o.gesture?' g-'+o.gesture:'');h.hidden=!o.gesture;
+  $('cring').hidden=!o.target;c.classList.toggle('notarget',!o.target);$('cbSkip').hidden=!TUT.on||TUT.step>=10;
+  coachTick();
+}
+function coachOff(){COACH.target=null;COACH.gesture=null;$('coach').hidden=true;}
+$('cbBtn').addEventListener('click',()=>{ac();const f=COACH.onBtn;if(f)f();});
+$('cbSkip').addEventListener('click',()=>{if(TUT.on)tutSkip();else hintOff();});
+function coachTick(){
+  const c=$('coach');if(c.hidden)return;
+  c.classList.toggle('under',!$('ov').hidden);
+  const a=$('app').getBoundingClientRect(),ring=$('cring'),bub=$('cbub');
+  let tr=null;
+  if(COACH.target){const el=typeof COACH.target==='string'?document.querySelector(COACH.target):COACH.target;if(el){const r=el.getBoundingClientRect();tr={x:r.left-a.left-5,y:r.top-a.top-5,w:r.width+10,h:r.height+10};}}
+  if(tr){ring.style.left=tr.x+'px';ring.style.top=tr.y+'px';ring.style.width=tr.w+'px';ring.style.height=tr.h+'px';}
+  let gp=null;
+  if(COACH.gesture){gp=typeof COACH.gpos==='function'?COACH.gpos():COACH.gpos;if(!gp&&tr)gp=[tr.x+tr.w/2,tr.y+tr.h/2];
+    if(gp){const h=$('chand');h.style.left=gp[0]+'px';h.style.top=gp[1]+'px';}}
+  const ref=tr?tr.y+tr.h/2:gp?gp[1]:a.height/2;
+  const below=ref<a.height*.45;
+  bub.style.top=below?Math.min(a.height-150,(tr?tr.y+tr.h:ref)+16)+'px':'';
+  bub.style.bottom=below?'':Math.max(8,a.height-(tr?tr.y:ref)+16)+'px';
+}
+function tutSpec(steps,extra){const sp=makeSpec();sp.look=LOOKS[0];sp.name='阿呱';sp.kid='round';sp.acc='towel';sp.chain=false;sp.eyeK=1;sp.steps=steps;sp.traits=[];sp.herb=null;sp.lvl=.62;sp.wpat=100;return Object.assign(sp,extra||{});}
+function startTutorial(){
+  TUT.on=true;TUT.step=0;DBG.solo=null;
+  dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=99;dayGoal=goalFor(1);
+  close();seat(tutSpec(['soak','scrub']));C.lumps=[];C.tickles=[];renderBench();hud();
+  setTimeout(()=>tutGo(1),900);
+}
+function tutGo(n){
+  TUT.step=n;TUT.expect=null;const L='新手教学 '+n+'/9';
+  if(n===1)coach({text:'欢迎来到<b>奶蛙足道</b>！第一位客人「阿呱」已经躺好了，脚底黑得像锅底。',btn:'下一步',onBtn:()=>tutGo(2),stepLabel:L});
+  else if(n===2)coach({target:'#chips',text:'这是客人的<b>单子</b>。上面的项目要<b>从左往右</b>依次做，红框的是当前这一项。',btn:'下一步',onBtn:()=>tutGo(3),stepLabel:L});
+  else if(n===3){TUT.expect='soak';coach({target:'#tool-soak',gesture:'tap',text:'第一项是泡脚。点下面亮起来的<b>木桶</b>。',stepLabel:L});}
+  else if(n===4)coach({target:'#stageWrap',gesture:'hold',gpos:()=>stageXY(150,250),text:'<b>按住画面</b>加热水，松手水就慢慢变凉。看右边的温度计，让水温<b>停在绿色区域</b>，进度条走满就泡好了。',stepLabel:L});
+  else if(n===5){TUT.expect='scrub';coach({target:'#tool-scrub',gesture:'tap',text:'泡好了！下一项是搓泥，点<b>搓澡巾</b>。',stepLabel:L});}
+  else if(n===6)coach({target:'#stageWrap',gesture:'swipe',gpos:()=>stageXY(158,285),text:'<b>按住</b>在脚底<b>来回搓</b>，把黑泥全搓掉。下面的进度条满了就完成。',stepLabel:L});
+  else if(n===7){TUT.expect='towel';coach({target:'#tool-towel',gesture:'tap',text:'单子上的项目都做完了。点<b>毛巾</b>给客人擦干、结账。',stepLabel:L});}
+  else if(n===8){
+    BQ=[tutSpec(['scrub'],{name:'小青',look:LOOKS[4]}),tutSpec(['soak','scrub'],{name:'蛙小美',look:LOOKS[2]})];BQ[1].wpat=55;renderBench();
+    seat(tutSpec(['scrub'],{name:'老蛙头',look:LOOKS[1],kid:'slim',acc:null}));C.lumps=[];C.tickles=[];
+    setTimeout(()=>coach({target:'#bench',text:'客人会陆续到店，坐在<b>长凳</b>上排队，头顶是他们点的项目。<b>耐心条</b>见底就会走掉，所以动作要快。',btn:'下一步',onBtn:()=>tutGo(9),stepLabel:L}),700);
+  }
+  else if(n===9){
+    coachOff();Q=null;
+    const df=QTE_KINDS.sneeze;Q={k:'sneeze',x:MV[0],y:MV[1]-16,foot:false,t:df.time,max:df.time,need:1,got:0,hold:false,hf:0,holding:false,label:df.label,short:df.short};
+    sfx.bad();say('阿……阿……');setFace('ouch',99);
+    coach({target:'#stageWrap',gesture:'tap',gpos:()=>{const p=Q?qPos():[MV[0],MV[1]];return stageXY(p[0],p[1]);},text:'<b>突发状况！</b>客人要打喷嚏了。看到<b>闪烁的圈</b>就赶紧点它。服务中随时会冒出来，接住有小费。',stepLabel:L});
+  }
+  else if(n===10){
+    coach({text:'教学完成！<br>过关只要拿到 <b>1 颗星</b>，赚得越多星越多。每过几关会解锁新项目：修脚、刮死皮、按摩、美甲……',btn:'开始第 1 关',onBtn:tutEnd,stepLabel:'新手教学完成'});
+  }
+}
+function tutEv(ev,a){
+  if(!TUT.on)return;
+  const n=TUT.step;
+  if(ev==='mini'&&n===3&&a==='soak')tutGo(4);
+  else if(ev==='finish'&&n===4&&a==='soak')setTimeout(()=>tutGo(5),500);
+  else if(ev==='mini'&&n===5&&a==='scrub')tutGo(6);
+  else if(ev==='finish'&&n===6&&a==='scrub')setTimeout(()=>tutGo(7),500);
+  else if(ev==='checkout'&&n===7){TUT.expect=null;coachOff();}
+  else if(ev==='qte'&&n===9){setFace('happy',1.2);setTimeout(()=>tutGo(10),900);}
+}
+function tutReceiptNext(){close();tutGo(8);}
+function tutEnd(){TUT.on=false;TUT.expect=null;coachOff();S.tut=true;S.seen=Object.assign(S.seen||{},{soak:1,scrub:1});save();Q=null;BQ=[];startDay();}
+function tutSkip(){TUT.on=false;TUT.expect=null;coachOff();S.tut=true;save();Q=null;BQ=[];startDay();}
+
+const HINTS={
+  trim:{text:'<b>修脚</b>：点长出来的<b>指甲尖</b>剪掉。别点到脚趾肉上。',gesture:'tap',pos:()=>{const i=C.nails.findIndex(n=>n.long&&!n.clipped);return i<0?null:clawMid(i);}},
+  peel:{text:'<b>刮死皮</b>：在黄色死皮上<b>顺着箭头往下刮</b>，松手掉下一卷。逆着刮会疼，太快会刮破。',gesture:'down',pos:()=>{const p=C.patches[0];return p?[p.x,p.y-p.ry*.6]:null;}},
+  massage:{text:'<b>足底按摩</b>：白圈会慢慢缩小，<b>缩到金圈上</b>时点那个穴位，越准越舒服。',gesture:'tap',pos:()=>{const nt=M&&M.seq[M.k];return nt?[nt.p.x,nt.p.y]:null;}},
+  paint:{text:'<b>美甲</b>：照右上角卡片，<b>先点颜色</b>，再点对应的<b>脚趾</b>。涂错了用卸甲水擦掉。',gesture:'tap',target:'#swatches'}
+};
+function firstHint(t){
+  if(TUT.on||DBG.solo&&S.seen&&S.seen[t])return;
+  S.seen=S.seen||{};if(S.seen[t]||!HINTS[t])return;
+  const h=HINTS[t];S.seen[t]=1;save();TUT.hint=t;TUT.hintT=performance.now();
+  coach({target:h.target||'#stageWrap',gesture:h.gesture,gpos:h.pos?()=>{const p=h.pos();return p?stageXY(p[0],p[1]):null;}:null,text:h.text,btn:'知道了',onBtn:hintOff,stepLabel:'新项目'});
+}
+function hintOff(){if(TUT.hint){TUT.hint=null;coachOff();}}
 
 /* ---------- update ---------- */
 function update(dt,t){
@@ -1098,14 +1235,14 @@ function update(dt,t){
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
-    if(!DBG.god)C.pat-=dt*K.decay*(1-.12*S.up.aroma)*.95*C.kind.pat*(C.has('rush')?1.35:1);
+    if(!DBG.god&&!TUT.on)C.pat-=dt*K.decay*(1-.12*S.up.aroma)*.95*C.kind.pat*(C.has('rush')?1.35:1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
-    if(!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
-    if(Q){Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
+    if(!TUT.on&&!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
+    if(Q){if(!TUT.on)Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
     arriveT-=dt;if(arriveT<=0&&spawned<dayCount()&&BQ.length<3){BQ.push(makeSpec());spawned++;arriveT=K.arrive*(.8+Math.random()*.4);renderBench();sfx.croak();}
-    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];if(!DBG.god)sp.wpat-=dt*100/K.wait;if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
+    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];if(!DBG.god&&!TUT.on)sp.wpat-=dt*100/K.wait;if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
     updateBenchBars();
-    if(C.has('chatty')&&!chatOpen&&!Q&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
+    if(!TUT.on&&C.has('chatty')&&!chatOpen&&!Q&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
     if(chatOpen){chatOpen.t-=dt;const tm=$('chatTm');if(tm)tm.style.width=(chatOpen.t/chatOpen.max*100)+'%';if(chatOpen.t<=0)answerChat(-1);}
     if(C.pat<=0){C.pat=0;setFace('angry',99);sfx.bad();checkout(true);}
     if(faceT<=0&&face!==baseFace())face=baseFace();
@@ -1128,9 +1265,9 @@ function update(dt,t){
       M.mt-=dt;M.tk=Math.max(0,M.tk-dt*.35);
       if(M.dirty&&M.mt<=0){M.mt=.18;M.dirty=false;M.clean=1-countDirt()/dirtInit;
         const lt=C.lumps.length,ld=C.lumps.filter(l=>l.hp<=0).length;
-        progress(Math.min(1,M.clean/.93)*(lt?.8:1)+(lt?.2*ld/lt:0));
-        if(M.clean>=.93&&ld>=lt)finish('scrub',Math.max(.5,1-.12*M.kicks));
-        else if(M.clean>=.93&&!M.lumpHint){M.lumpHint=true;flashInstr(`还剩 ${lt-ld} 块硬泥块，按住多搓几下`);}}
+        const thr=TUT.on?.85:.93;progress(Math.min(1,M.clean/thr)*(lt?.8:1)+(lt?.2*ld/lt:0));
+        if(M.clean>=thr&&ld>=lt)finish('scrub',Math.max(.5,1-.12*M.kicks));
+        else if(M.clean>=thr&&!M.lumpHint){M.lumpHint=true;flashInstr(`还剩 ${lt-ld} 块硬泥块，按住多搓几下`);}}
     }else if(M.type==='massage'){
       const nt=M.seq[M.k];
       if(M.wait>0)M.wait-=dt;
@@ -1402,7 +1539,7 @@ function draw(t){
 }
 
 let last=performance.now();
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt,now/1000);draw(now/1000);requestAnimationFrame(loop);}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt,now/1000);draw(now/1000);coachTick();requestAnimationFrame(loop);}
 
 /* ---------- boot ---------- */
 setMuteIcon();hud();requestAnimationFrame(loop);loadArt().then(()=>{buildMask();dayGoal=goalFor(S.day);seat(makeSpec());entry=1;showTitle();});
