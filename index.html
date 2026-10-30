@@ -191,6 +191,18 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .tabb.on{background:var(--sign);border-color:var(--sign);color:var(--paper)}
 .pips i.cap{background:repeating-linear-gradient(45deg,var(--paper-line) 0 2px,transparent 2px 4px)}
 
+.effbox{display:flex;flex-direction:column;gap:2px;background:#fff3cf;border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.5}
+.effbox b{font-size:13.5px}
+.decohead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:6px;font-size:12px;color:var(--ink-soft)}
+.decohead b{font-size:14.5px;color:var(--ink)}
+.decogrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.decoit{display:flex;flex-direction:column;align-items:center;gap:2px;border:1.5px solid var(--paper-line);border-radius:10px;padding:6px 4px;text-align:center;min-width:0;background:#fff}
+.decoit.has{background:#eef7e6;border-color:#9cc27a}
+.decoit img{width:52px;height:52px}
+.decoit b{font-size:12.5px}
+.decoit span{font-size:10.5px;color:var(--ink-soft);line-height:1.3;min-height:2.6em}
+.decoit .buy{min-width:0;width:100%;padding:5px 2px;font-size:12px;grid-row:auto;grid-column:auto}
+
 /* tray */
 .tray.two{gap:5px;padding:5px}
 .tray.two .tool{padding:4px 2px 3px}
@@ -315,7 +327,6 @@ const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:3
 const TOOL_MULT=[1,2.5,5],TOOL_MAX=3;
 const upCost=(u,lv)=>Math.round(TOOL_BASE[u.svc]*TOOL_MULT.at(lv)/10)*10;
 const toolLv=svc=>{const u=UPG.find(t=>t.svc===svc);return u?(S.up[u.id]||0):0;};
-function decoEff(k){return 0;}
 const NAMES=['呱太郎','蛙小美','老蛙头','阿呱','绿豆','呱呱姐','蛙大爷','荷叶仙','跳跳','小青','泥鳅哥','莲蓬','呱子','田鸡王'];
 const PALS=[
   {skin:'#a3d98f',sole:'#d4f0c2',web:'#bfe6a8',out:'#3d6a33',belly:'#ecf8dc',blush:'#f29a9a'},
@@ -1111,8 +1122,6 @@ function showShop(){
     save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=()=>{$('panel').onclick=null;startDay();};
 }
-function decoShopHtml(){return'<p class="muted">装修商店下一步开放。</p>';}
-const DECOS=[];
 function startDay(){vipSpawned=false;setChapter();{const ch=chOf(S.day);S.chSeen=S.chSeen||{};if(ch>1&&!S.chSeen[ch]&&!DBG.solo){S.chSeen[ch]=1;save();DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;open(chapterCardHtml(ch)+'<div class="btns"><button class="btn" id="chBtn">进店</button></div>');tone(523,523,.15,'triangle',.08);tone(659,659,.15,'triangle',.08,.15);tone(784,784,.15,'triangle',.08,.3);tone(1047,1047,.4,'triangle',.08,.45);$('chBtn').onclick=showLevelIntro;return;}}DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
 function showLevelIntro(){
   const lv=S.day,g=starGoals(dayGoal),neu=ORDER.find(s=>UNLOCK[s]===lv&&lv>1);
@@ -1134,8 +1143,10 @@ function showTitle(){
   <div class="menu"><span class="h">价目表</span>
     ${ORDER.map(s=>`<span>${STEPS[s].n}${UNLOCK[s]>1?` <span class="x">第${UNLOCK[s]}关</span>`:''}</span><span>¥${STEPS[s].p}</span>`).join('')}
   </div>
+  ${S.refund?`<p class="lvup">升级系统改版了：原来的香薰和店面装修已按原价退还 ¥${S.refund}，可以去商店重新挑。</p>`:''}
   <p class="muted">拿错工具、夹到肉都会扣耐心，耐心见底客人就气走了；长凳上的客人等太久也会走。</p>
   <div class="btns"><button class="btn" id="startBtn">${fresh?'开张营业':'继续第 '+S.day+' 关'}</button>${fresh?'':'<button class="btn ghost" id="resetBtn">清空存档</button>'}</div>`);
+  if(S.refund){delete S.refund;save();}
   $('startBtn').onclick=()=>{ac();if(!S.tut&&S.served===0)startTutorial();else startDay();};
   const rb=$('resetBtn');if(rb){let arm=false;rb.onclick=()=>{if(!arm){arm=true;rb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();showTitle();};}
 }
@@ -1608,6 +1619,54 @@ function chapterCardHtml(ch){
   return`<div class="chcard ch${ch}"><span class="chn">${CH_NUM.at(ch)}</span><b>${C2.name}</b><span class="chs">${C2.sub}</span>${art}<p>${C2.desc}</p></div>`;
 }
 
+
+/* ---------- decoration shop ---------- */
+const EFF_TXT={pat:k=>`客人耐心掉得慢 ${Math.round(k*100)}%`,wait:k=>`长凳上能多等 ${Math.round(k*100)}%`,tip:k=>`小费 +${Math.round(k*100)}%`,qte:k=>`突发状况多 ${Math.round(k*100)}% 时间`,vip:k=>`贵客多来 ${Math.round(k*100)}%`,boss:k=>`Boss 满意度起点 +${Math.round(k*100)}`};
+const SET_TIP={1:.05,2:.06,3:.08};
+const SLOTS=[[26,476],[70,476],[28,420],[334,476],[290,476],[332,420]],FLOOR=474,RUGY=428;
+function dPot(c,x,y,col){c.fillStyle=col||'#b5653a';c.strokeStyle='#5a2a14';c.lineWidth=1.5;c.beginPath();c.moveTo(x-14,y-20);c.lineTo(x+14,y-20);c.lineTo(x+10,y);c.lineTo(x-10,y);c.closePath();c.fill();c.stroke();}
+const DECOS=[
+  {id:'lotus',ch:1,n:'荷花盆栽',price:200,eff:{pat:.05},slot:0,draw(c,x,y,t){dPot(c,x,y);c.fillStyle='#5fae55';c.strokeStyle='#2f5e28';c.lineWidth=1.2;c.beginPath();c.ellipse(x-9,y-30,11,5,-.5,0,TAU);c.fill();c.stroke();c.beginPath();c.ellipse(x+10,y-34,11,5,.4,0,TAU);c.fill();c.stroke();c.strokeStyle='#3f7d3a';c.lineWidth=2;c.beginPath();c.moveTo(x,y-20);c.lineTo(x+1,y-46);c.stroke();c.fillStyle='#f48fb8';c.strokeStyle='#b4507a';c.lineWidth=1;for(const a of [-.5,0,.5]){c.save();c.translate(x+1,y-48);c.rotate(a);c.beginPath();c.ellipse(0,-6,4,8,0,0,TAU);c.fill();c.stroke();c.restore();}}},
+  {id:'luckyfrog',ch:1,n:'招财蛙摆件',price:300,eff:{tip:.05},slot:3,draw(c,x,y,t){c.fillStyle='#8a5a2b';c.fillRect(x-16,y-6,32,6);c.fillStyle='#f0bd3c';c.strokeStyle='#8a6a14';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y-17,14,12,0,0,TAU);c.fill();c.stroke();circ(c,x-7,y-29,5);circ(c,x+7,y-29,5);c.fillStyle='#2b2118';circ(c,x-7,y-29,2);circ(c,x+7,y-29,2);c.fillStyle='#c4302a';circ(c,x,y-13,5);c.fillStyle='#f5d27a';c.font=`7px ${DISPLAY}`;c.textAlign='center';c.fillText('¥',x,y-11);}},
+  {id:'chime',ch:1,n:'竹风铃',price:400,eff:{qte:.15},slot:2,draw(c,x,y,t){c.strokeStyle='#8a5a2b';c.lineWidth=2.5;c.beginPath();c.moveTo(x-10,y);c.lineTo(x-10,y-56);c.lineTo(x+10,y-56);c.stroke();c.lineWidth=1;for(let i=0;i<4;i++){const sw=Math.sin(t*2+i)*2;c.strokeStyle='#5a3a1a';c.beginPath();c.moveTo(x+2+i*3,y-56);c.lineTo(x+2+i*3+sw,y-44+i*2);c.stroke();c.fillStyle='#c9b27a';c.fillRect(x+i*3+sw,y-44+i*2,3,10);}c.fillStyle='#8a5a2b';c.fillRect(x-16,y-3,14,3);}},
+  {id:'screen',ch:1,n:'蓝布屏风',price:500,eff:{wait:.10},slot:1,draw(c,x,y,t){c.strokeStyle='#5a3a1a';c.lineWidth=1.5;for(let i=0;i<3;i++){const x0=x-18+i*12;c.fillStyle=i%2?'#4b6fd6':'#5b7fe6';c.beginPath();c.moveTo(x0,y);c.lineTo(x0,y-46+(i%2)*3);c.lineTo(x0+12,y-46+((i+1)%2)*3);c.lineTo(x0+12,y);c.closePath();c.fill();c.stroke();c.strokeStyle='rgba(255,255,255,.6)';c.beginPath();c.moveTo(x0+3,y-30);c.lineTo(x0+9,y-30);c.stroke();c.strokeStyle='#5a3a1a';}}},
+  {id:'goldfish',ch:1,n:'小金鱼缸',price:650,eff:{vip:.03},slot:4,draw(c,x,y,t){c.fillStyle='#8a5a2b';c.fillRect(x-14,y-4,28,4);c.fillStyle='rgba(150,210,240,.6)';c.strokeStyle='#6fa8c0';c.lineWidth=1.5;c.beginPath();c.arc(x,y-17,15,0,TAU);c.fill();c.stroke();const fx=x+Math.sin(t*1.5)*6;c.fillStyle='#ff8a3a';c.beginPath();c.ellipse(fx,y-16,5,3,0,0,TAU);c.fill();c.beginPath();c.moveTo(fx-4,y-16);c.lineTo(fx-8,y-19);c.lineTo(fx-8,y-13);c.fill();}},
+  {id:'leafrug',ch:1,n:'荷叶地垫',price:800,eff:{boss:.10},slot:-1,draw(c,x,y,t){c.fillStyle='#6fb05f';c.strokeStyle='#3f7d3a';c.lineWidth=2;c.beginPath();c.ellipse(180,y-6,96,12,0,0,TAU);c.fill();c.stroke();c.strokeStyle='rgba(40,90,40,.5)';c.lineWidth=1;for(let a=-1;a<=1;a+=.25){c.beginPath();c.moveTo(180,y-6);c.lineTo(180+Math.sin(a)*92,y-6+Math.cos(a)*10*(a>0?-1:1));c.stroke();}}},
+  {id:'redscreen',ch:2,n:'红木屏风',price:900,eff:{pat:.06},slot:0,draw(c,x,y,t){c.strokeStyle='#2b1206';c.lineWidth=1.5;for(let i=0;i<3;i++){const x0=x-18+i*12;c.fillStyle='#6a1f12';c.beginPath();c.rect(x0,y-54,12,54);c.fill();c.stroke();c.fillStyle='#e9d9b0';c.fillRect(x0+2,y-48,8,22);c.strokeStyle='#8a5a2b';c.beginPath();c.moveTo(x0+3,y-40);c.quadraticCurveTo(x0+6,y-44,x0+9,y-36);c.stroke();c.strokeStyle='#2b1206';}}},
+  {id:'censer',ch:2,n:'铜香炉',price:1100,eff:{tip:.06},slot:3,draw(c,x,y,t){c.fillStyle='#a87a3a';c.strokeStyle='#5a3a10';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y-14,13,10,0,0,TAU);c.fill();c.stroke();c.fillRect(x-10,y-4,4,4);c.fillRect(x+6,y-4,4,4);c.fillRect(x-9,y-28,18,4);c.strokeStyle=`rgba(230,230,230,.6)`;c.lineWidth=1.5;c.beginPath();for(let k=0;k<6;k++)c.lineTo(x+Math.sin(t*2+k)*3,y-30-k*5);c.stroke();}},
+  {id:'radio',ch:2,n:'老式收音机',price:1300,eff:{wait:.12},slot:1,draw(c,x,y,t){c.fillStyle='#8a5a2b';c.strokeStyle='#3a2210';c.lineWidth=1.5;c.beginPath();c.roundRect(x-18,y-30,36,30,[10,10,2,2]);c.fill();c.stroke();c.fillStyle='#e9d9b0';c.beginPath();c.roundRect(x-13,y-24,16,16,3);c.fill();c.strokeStyle='#8a5a2b';for(let k=0;k<3;k++){c.beginPath();c.moveTo(x-12,y-20+k*5);c.lineTo(x+2,y-20+k*5);c.stroke();}c.fillStyle='#3a2210';circ(c,x+10,y-18,3);circ(c,x+10,y-9,3);c.fillStyle='#2b2118';c.font=`10px sans-serif`;c.textAlign='center';c.fillText('♪',x+6+Math.sin(t*2)*4,y-36-(t*10%10));}},
+  {id:'teaset',ch:2,n:'功夫茶台',price:1500,eff:{qte:.15},slot:2,draw(c,x,y,t){c.fillStyle='#5a3218';c.strokeStyle='#2b1206';c.lineWidth=1.5;c.beginPath();c.rect(x-20,y-12,40,6);c.fill();c.stroke();c.fillRect(x-17,y-6,3,6);c.fillRect(x+14,y-6,3,6);c.fillStyle='#8a4a2a';c.beginPath();c.ellipse(x-4,y-19,8,7,0,0,TAU);c.fill();c.stroke();c.beginPath();c.moveTo(x+3,y-20);c.lineTo(x+9,y-24);c.stroke();c.fillStyle='#f6f0e0';for(const dx of [8,15]){c.beginPath();c.ellipse(x+dx,y-15,3,2.5,0,0,TAU);c.fill();c.stroke();}}},
+  {id:'vase',ch:2,n:'青花瓷瓶',price:1700,eff:{vip:.04},slot:4,draw(c,x,y,t){c.fillStyle='#f6f4ee';c.strokeStyle='#2f4c8b';c.lineWidth=1.5;c.beginPath();c.moveTo(x-5,y-48);c.lineTo(x+5,y-48);c.quadraticCurveTo(x+4,y-38,x+12,y-28);c.quadraticCurveTo(x+16,y-8,x+7,y);c.lineTo(x-7,y);c.quadraticCurveTo(x-16,y-8,x-12,y-28);c.quadraticCurveTo(x-4,y-38,x-5,y-48);c.closePath();c.fill();c.stroke();c.strokeStyle='#3a5fb5';c.lineWidth=1.2;c.beginPath();c.arc(x,y-20,6,0,TAU);c.stroke();c.beginPath();c.moveTo(x-10,y-30);c.quadraticCurveTo(x,y-34,x+10,y-30);c.stroke();}},
+  {id:'redrug',ch:2,n:'红毯',price:2000,eff:{boss:.10},slot:-1,draw(c,x,y,t){c.fillStyle='#b8322a';c.strokeStyle='#f0bd3c';c.lineWidth=2;c.beginPath();c.roundRect(84,y-16,192,18,4);c.fill();c.stroke();c.strokeStyle='rgba(240,189,60,.6)';c.lineWidth=1;c.beginPath();c.roundRect(90,y-12,180,10,3);c.stroke();}},
+  {id:'stonelamp',ch:3,n:'石灯笼',price:1800,eff:{pat:.06},slot:0,draw(c,x,y,t){c.fillStyle='#8c979a';c.strokeStyle='#4a5558';c.lineWidth=1.5;c.fillRect(x-4,y-22,8,22);c.strokeRect(x-4,y-22,8,22);c.beginPath();c.rect(x-10,y-38,20,16);c.fill();c.stroke();c.fillStyle=`rgba(255,200,110,${.7+.3*Math.sin(t*3)})`;c.fillRect(x-6,y-34,12,9);c.fillStyle='#8c979a';c.beginPath();c.moveTo(x-17,y-38);c.lineTo(x,y-50);c.lineTo(x+17,y-38);c.closePath();c.fill();c.stroke();c.fillRect(x-12,y-2,24,3);}},
+  {id:'shishi',ch:3,n:'竹添水',price:2100,eff:{qte:.15},slot:2,draw(c,x,y,t){const tip=Math.sin(t*.8)>.85?.5:-.15;c.fillStyle='#6b7c80';c.beginPath();c.ellipse(x,y-4,18,6,0,0,TAU);c.fill();c.strokeStyle='#3e5e28';c.lineWidth=2;c.beginPath();c.moveTo(x-8,y-4);c.lineTo(x-8,y-26);c.stroke();c.save();c.translate(x-8,y-26);c.rotate(tip);c.fillStyle='#89b25c';c.strokeStyle='#3e5e28';c.lineWidth=1.2;c.beginPath();c.roundRect(-14,-3,30,6,3);c.fill();c.stroke();c.restore();c.fillStyle='rgba(140,200,230,.8)';c.beginPath();c.ellipse(x,y-5,12,3,0,0,TAU);c.fill();}},
+  {id:'tubs',ch:3,n:'温泉木桶',price:2400,eff:{wait:.12},slot:1,draw(c,x,y,t){for(const [dx,dy,s] of [[-8,0,1],[8,0,1],[0,-18,.9]]){const w=13*s,h=16*s,bx=x+dx,by=y+dy;c.fillStyle='#c08447';c.strokeStyle='#5a3a1a';c.lineWidth=1.3;c.beginPath();c.moveTo(bx-w,by-h);c.lineTo(bx+w,by-h);c.lineTo(bx+w*.85,by);c.lineTo(bx-w*.85,by);c.closePath();c.fill();c.stroke();c.fillStyle='#4a4f55';c.fillRect(bx-w*.95,by-h*.7,w*1.9,2);c.fillRect(bx-w*.9,by-h*.25,w*1.8,2);}}},
+  {id:'bonsai',ch:3,n:'松树盆景',price:2700,eff:{tip:.06},slot:3,draw(c,x,y,t){c.fillStyle='#4a6a7a';c.strokeStyle='#2b3f48';c.lineWidth=1.5;c.beginPath();c.roundRect(x-16,y-8,32,8,2);c.fill();c.stroke();c.strokeStyle='#5a3a1a';c.lineWidth=3;c.beginPath();c.moveTo(x-2,y-8);c.quadraticCurveTo(x-10,y-22,x+2,y-30);c.quadraticCurveTo(x+8,y-36,x+4,y-44);c.stroke();c.fillStyle='#3f7d3a';for(const [dx,dy,r] of [[-10,-28,8],[8,-36,9],[0,-46,7],[12,-24,6]]){c.beginPath();c.ellipse(x+dx,y+dy,r*1.4,r*.7,0,0,TAU);c.fill();}}},
+  {id:'yukata',ch:3,n:'浴衣架',price:3000,eff:{vip:.05},slot:4,draw(c,x,y,t){c.strokeStyle='#5a3a1a';c.lineWidth=2;c.beginPath();c.moveTo(x-16,y);c.lineTo(x-16,y-54);c.moveTo(x+16,y);c.lineTo(x+16,y-54);c.moveTo(x-20,y-52);c.lineTo(x+20,y-52);c.stroke();c.fillStyle='#5b7fd6';c.strokeStyle='#2f4c6b';c.lineWidth=1.2;c.beginPath();c.moveTo(x-13,y-50);c.lineTo(x+13,y-50);c.lineTo(x+11,y-12);c.lineTo(x-11,y-12);c.closePath();c.fill();c.stroke();c.strokeStyle='#fff';c.beginPath();c.moveTo(x-6,y-50);c.lineTo(x+2,y-34);c.lineTo(x+6,y-50);c.stroke();c.fillStyle='#c4302a';c.fillRect(x-12,y-32,24,4);}},
+  {id:'pebbles',ch:3,n:'鹅卵石步道',price:3500,eff:{boss:.10},slot:-1,draw(c,x,y,t){for(let i=0;i<13;i++){const px=96+i*14+(i%2)*4,py=y-6+(i%3-1)*3;c.fillStyle=['#a8b4b8','#c7cfd1','#8c979a'][i%3];c.strokeStyle='#5a6568';c.lineWidth=1;c.beginPath();c.ellipse(px,py,7,4.5,0,0,TAU);c.fill();c.stroke();}}}
+];
+function decoEff(k){let v=0;for(const d of DECOS)if(S.deco&&S.deco[d.id]&&d.eff[k])v+=d.eff[k];if(k==='tip')for(const ch of [1,2,3])if(DECOS.filter(d=>d.ch===ch).every(d=>S.deco&&S.deco[d.id]))v+=SET_TIP[ch];return v;}
+function drawDecor(c,t){const ch=chOf(S.day);const own=DECOS.filter(d=>d.ch===ch&&S.deco&&S.deco[d.id]);
+  for(const d of own)if(d.slot<0)d.draw(c,180,RUGY,t);
+  for(const d of own)if(d.slot>=0){const [x,y]=SLOTS.at(d.slot);d.draw(c,x,y,t);}}
+const DECO_IMG={};
+function decoIcon(d){if(DECO_IMG[d.id])return DECO_IMG[d.id];const cw=document.createElement('canvas');cw.width=cw.height=112;const x=cw.getContext('2d');x.scale(2,2);
+  if(d.slot<0){const s=.28;x.translate(28-180*s,34-(RUGY-6)*s);x.scale(s,s);d.draw(x,180,RUGY,0);}else{x.translate(28,54);x.scale(.92,.92);d.draw(x,0,0,0);}
+  return DECO_IMG[d.id]=cw.toDataURL();}
+function decoShopHtml(){
+  const cur=chOf(S.day);let html='';
+  const effs=Object.keys(EFF_TXT).map(k=>[k,decoEff(k)]).filter(e=>e[1]>0);
+  html+=`<div class="effbox"><b>当前装修效果</b><span>${effs.length?effs.map(([k,v])=>EFF_TXT[k](v)).join(' · '):'还没有装修，买了会摆进店里'}</span></div>`;
+  for(const ch of [1,2,3]){
+    const list=DECOS.filter(d=>d.ch===ch),owned=list.filter(d=>S.deco[d.id]).length,open=ch<=cur;
+    html+=`<div class="decohead"><b>${CH_NUM.at(ch)} · ${CHAPTERS.at(ch-1).name}</b><span>${owned}/6 · 集齐小费再 +${Math.round(SET_TIP[ch]*100)}%</span></div>`;
+    if(!open){html+=`<p class="muted">到${CH_NUM.at(ch)}开放。</p>`;continue;}
+    html+=`<div class="decogrid">`+list.map(d=>{const has=!!S.deco[d.id];const [k,v]=Object.entries(d.eff)[0];
+      return`<div class="decoit ${has?'has':''}"><img src="${decoIcon(d)}" alt=""><b>${d.n}</b><span>${EFF_TXT[k](v)}</span><button class="buy" data-deco="${d.id}" ${has||S.coins<d.price?'disabled':''}>${has?'已摆上':'¥'+d.price}</button></div>`;}).join('')+`</div>`;
+  }
+  return html;
+}
+
 /* ---------- update ---------- */
 function update(dt,t){
   if(!C)return;
@@ -1922,7 +1981,7 @@ function draw(t){
   let sx=0,sy=0;if(shake>0){sx=(Math.random()-.5)*8*shake/.3;sy=(Math.random()-.5)*6*shake/.3;}
   ctx.setTransform(dpr*sc,0,0,dpr*sc,dpr*(ox+sx*sc),dpr*(oy+sy*sc));
   const e=ease(entry);
-  drawScene(ctx,t);drawImg(ctx,chairImg(),ART.chair);
+  drawScene(ctx,t);drawImg(ctx,chairImg(),ART.chair);drawDecor(ctx,t);
   ctx.save();ctx.translate(face==='shiver'?Math.sin(t*50)*1.5:0,(1-e)*-340);drawFrog(ctx,t);ctx.restore();
   ctx.save();ctx.translate(FO.x,(1-e)*340+R.jy*.12+FO.y);
   if(bucket>.01)drawBucketBack(ctx,bucket);
