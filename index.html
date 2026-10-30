@@ -1,3 +1,11 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#163a35">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%}*,*::before,*::after{box-sizing:border-box}body{margin:0;font-size:14px;overscroll-behavior:none}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>奶蛙足道</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -256,6 +264,8 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 @media (max-width:430px){.sign{font-size:18px;padding:2px 8px 3px;letter-spacing:.04em}.sign small{font-size:10px;margin-left:2px}.stats{gap:4px}.chip{padding:4px 7px;font-size:12px}.icon-btn{width:28px;height:28px}.top{gap:6px}}
 </style>
 
+</head>
+<body>
 <div id="app">
   <header class="top">
     <div class="sign" id="signText">奶蛙足道</div>
@@ -2007,3 +2017,6 @@ function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt,now
 setMuteIcon();hud();requestAnimationFrame(loop);loadArt().then(()=>{setChapter();buildMask();dayGoal=goalFor(S.day);seat(makeSpec());entry=1;showTitle();});
 })();
 </script>
+
+</body>
+</html>
