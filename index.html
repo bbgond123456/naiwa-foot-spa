@@ -211,6 +211,18 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .decoit span{font-size:10.5px;color:var(--ink-soft);line-height:1.3;min-height:2.6em}
 .decoit .buy{min-width:0;width:100%;padding:5px 2px;font-size:12px;grid-row:auto;grid-column:auto}
 
+.bosscard{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:linear-gradient(#3a1a14,#6a2418);color:#fbe7c8;border-radius:12px;padding:14px 12px;box-shadow:inset 0 0 0 2px #e0a72e}
+.bosscard .bk{font-size:12px;letter-spacing:.3em;color:#f5c95c}
+.bosscard b{font-family:var(--display);font-weight:400;font-size:32px;color:#ffd58a}
+.bosscard p{margin:0;font-size:14px;line-height:1.6}
+.bosscard.win{background:linear-gradient(#fff6d6,#fbe7a8);color:var(--ink)}
+.bosscard.win b{color:#8a3a10}.bosscard.win .bk{color:#8a5a10}
+.bosscard.lose{background:linear-gradient(#3c3c40,#26262a)}
+.tg.boss{background:linear-gradient(#3a1a14,#8a2418);color:#ffd58a}
+.tg.dem{background:#ff9a6b;color:#3a1a0a;animation:newp .8s 3}
+.pat.boss .bar{background:linear-gradient(90deg,transparent calc(60% - 1px),var(--wood-dark) calc(60% - 1px) 60%,transparent 60% calc(75% - 1px),var(--wood-dark) calc(75% - 1px) 75%,transparent 75% calc(90% - 1px),var(--wood-dark) calc(90% - 1px) 90%,transparent 90%),var(--paper-line);overflow:visible}
+.pat.boss .bar i{opacity:.92}
+
 /* tray */
 .tray.two{gap:5px;padding:5px}
 .tray.two .tool{padding:4px 2px 3px}
@@ -286,7 +298,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     <div class="tags" id="tags" hidden></div>
     <p class="quote" id="quote"></p>
     <div class="chips" id="chips"></div>
-    <div class="pat"><span>耐心</span><div class="bar"><i id="patBar"></i></div></div>
+    <div class="pat" id="patWrap"><span id="patLbl">耐心</span><div class="bar"><i id="patBar"></i></div></div>
   </section>
 
   <div class="bench" id="bench"></div>
@@ -571,8 +583,8 @@ const NEWS={
   7:['解锁新项目「足底按摩」：光圈缩到金圈时点穴位'],
   8:['按摩出现「长按」穴位','修脚时客人会乱动脚','客人一次点的项目更多了'],
   9:['解锁新项目「蛙趾美甲」：照卡片涂颜色'],
-  10:['按摩出现「连点」揉按','之后客人更多、更急'],
-  11:['解锁新项目「足膜」：抹匀泥膜，等它干了一把撕下来'],
+  10:[],
+  11:['解锁新项目「足膜」：抹匀泥膜，等它干了一把撕下来','按摩出现「连点」揉按'],
   12:['美甲出现撞色、只涂一个'],
   13:['解锁新项目「鱼疗」：小鱼啃死皮，凶巴巴的大鱼要赶走'],
   14:['大鱼来得更勤了'],
@@ -581,7 +593,8 @@ const NEWS={
   17:['解锁新项目「艾灸拔罐」：扣上火罐，变绿就取下'],
   18:['脱脚毛出现三块毛'],
   19:['解锁新项目「足部彩绘」：沿着虚线描图案'],
-  20:['拔罐一次要扣四个罐','彩绘出现星星和小花']
+  20:[],
+  21:['拔罐一次要扣四个罐','彩绘出现星星和小花']
 };
 const UNLOCK_HOW={mask:'按住来回抹匀泥膜，干了以后按住脚跟的小角往上撕',fish:'小鱼自己会啃死皮，点死皮把鱼引过去；大鱼来了点它赶走',wax:'点脚毛贴蜡条，来回抹平，指针到绿区时点一下撕掉',moxa:'点发光的穴位扣火罐，罐子变绿时点它取下',art:'从闪烁的点开始，沿着虚线描出图案',soak:'按住画面加热水，把水温停在绿区',scrub:'在脚底来回搓，把黑泥搓干净',trim:'点长出来的指甲，咔嚓剪掉，别夹到肉',peel:'顺着箭头往下刮，刮出一卷卷死皮。逆着刮会疼，太快会刮破',massage:'光圈缩到金圈上时点那个穴位',paint:'照右上角的卡片，选颜色点脚趾'};
 function cfg(d){
@@ -616,7 +629,7 @@ let BQ=[],spawned=0,arriveT=0,specId=0,doneCount=0,missed=0,peelFade=0;
 let swayAmt=0,kick=0,chatOpen=null;
 const FO={x:0,y:0};
 const PS=[],FT=[];
-const dayCount=()=>cfg(S.day).count;
+const dayCount=()=>isBossLv(S.day)&&!DBG.solo?1:cfg(S.day).count;
 
 function genPaint(d){
   const ds=cfg(d).designs,design=pick(ds),cs=COLORS.slice().sort(()=>Math.random()-.5);
@@ -744,11 +757,12 @@ function flashInstr(t){setInstr(t);const b=$('instrBox');b.classList.remove('fla
 function progress(v){const w=$('progWrap');if(v==null){w.hidden=true;return;}w.hidden=false;$('prog').style.width=(clamp(v,0,1)*100)+'%';}
 function setFace(f,t){if(f!==face){if(f==='ouch')R.jv=-260;if(f==='hot')R.jv=-160;if(f==='angry')R.sacT=.6;}if(f==='tickle')R.tick=1;face=f;faceT=t;}
 const baseFace=()=>C&&C.pat<30?'angry':'neutral';
-function hud(){$('dayChip').textContent=DBG.solo?`试玩 · ${STEPS[DBG.solo].n}`:`第${S.day}关 ★${totalStars()}`;$('coinChip').textContent=S.coins>=10000?'¥'+(S.coins/10000).toFixed(1)+'万':'¥'+S.coins;if(C)$('custCount').textContent=`${Math.min(doneCount+1,dayCount())}/${dayCount()} 位 · ¥${dayEarn}`;}
+function hud(){$('dayChip').textContent=DBG.solo?`试玩 · ${STEPS[DBG.solo].n}`:`第${S.day}关 ★${totalStars()}`;$('coinChip').textContent=S.coins>=10000?'¥'+(S.coins/10000).toFixed(1)+'万':'¥'+S.coins;if(C&&C.boss)$('custCount').textContent=`Boss 战 · 满意度 ${Math.round(C.pat)}`;else if(C)$('custCount').textContent=`${Math.min(doneCount+1,dayCount())}/${dayCount()} 位 · ¥${dayEarn}`;}
 function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');}
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
-  const tg=(C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
+  $('patLbl').textContent=C.boss?'满意度':'耐心';$('patWrap').classList.toggle('boss',!!C.boss);
+  const tg=(C.boss?`<span class="tg boss">BOSS · 满意度 60/75/90 = 1/2/3 星</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
   $('tags').innerHTML=tg;$('tags').hidden=!tg;
   $('chips').innerHTML=C.steps.map((s,i)=>{
     const cls=C.q[s]!=null?'done':(i===C.si?'cur':'');
@@ -787,6 +801,7 @@ function useTool(id,btn){
   if(id!=='towel'&&UNLOCK[id]>S.day){flashInstr(`「${STEPS[id].n}」第 ${UNLOCK[id]} 天解锁`);return;}
   if(M){flashInstr('先把手上这一步做完');return;}
   if(id==='towel'){
+    if(C.boss&&C.si<C.steps.length){flashInstr('Boss 的项目还没做完，不能结账');sfx.bad();return;}
     if(C.si<C.steps.length&&!towelArm){towelArm=true;flashInstr('还有项目没做，再点一次毛巾直接结账');setTimeout(()=>towelArm=false,2600);return;}
     towelArm=false;checkout(false);return;
   }
@@ -840,6 +855,7 @@ function finish(step,q){
   if(C.has('rush')&&el<10){C.fast+=6;addFT('快手奖 +¥6',180,280,'#f5c95c',18,1);}
   renderTicket();updateTray();progress(null);
   if(C.si<C.steps.length)setInstr('这步完成！选下一件工具');else{setInstr('全部做完，用毛巾擦干结账');hintTool('towel');}
+  bossAfterFinish(step,q);
   if(!C.evented&&!C.vip&&!DBG.solo&&!TUT.on&&Math.random()<cfg(S.day).eventP){C.evented=true;const cc=C;setTimeout(()=>{if(C===cc)serviceEvent();},1100);}
 }
 function serviceEvent(){
@@ -1037,6 +1053,7 @@ function checkout(angry){
   if(!C||C.done)return;
   tutEv('checkout');hintOff();
   C.done=true;M=null;Q=null;hold=false;scrubbing=false;peeling=false;$('swatches').hidden=true;closeChat();updateTray();
+  if(C.boss){bossEnd(!angry);return;}
   const k=C.has('picky')?1.3:1;
   const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k*(1+.1*toolLv(s))):0}));
   let sum=rows.reduce((a,r)=>a+r.amt,0);
@@ -1134,6 +1151,7 @@ function showShop(){
 }
 function startDay(){vipSpawned=false;setChapter();{const ch=chOf(S.day);S.chSeen=S.chSeen||{};if(ch>1&&!S.chSeen[ch]&&!DBG.solo){S.chSeen[ch]=1;save();DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;open(chapterCardHtml(ch)+'<div class="btns"><button class="btn" id="chBtn">进店</button></div>');tone(523,523,.15,'triangle',.08);tone(659,659,.15,'triangle',.08,.15);tone(784,784,.15,'triangle',.08,.3);tone(1047,1047,.4,'triangle',.08,.45);$('chBtn').onclick=showLevelIntro;return;}}DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
 function showLevelIntro(){
+  if(isBossLv(S.day)&&!DBG.solo){showBossIntro();return;}
   const lv=S.day,g=starGoals(dayGoal),neu=ORDER.find(s=>UNLOCK[s]===lv&&lv>1);
   const news=(NEWS[lv]||(lv>13?['客人更多、更急，泥更硬、按摩更快']:[])).filter(x=>!neu||!x.startsWith('解锁'));
   open(`<h2>第 ${lv} 关 <small class="chtag">${CHAPTERS.at(chOf(lv)-1).name}</small></h2>
@@ -1189,11 +1207,11 @@ function seatSolo(svc){
   BQ=[];spawned=dayCount();renderBench();seat(sp);hud();
 }
 function showDebug(){
-  const lv=S.day,maxLv=25;
+  const lv=S.day,maxLv=30;
   open(`<h2>调试工具</h2>
   <p class="muted">用来提前看后面的关卡和项目。跳关会改动存档里的关卡进度。</p>
   <div class="dbg"><b>跳到关卡</b><span class="muted">直接开始那一关（难度、新内容都按那一关来）</span>
-    <div class="dgrid">${Array.from({length:maxLv},(_,i)=>i+1).map(n=>{const neu=ORDER.find(s=>UNLOCK[s]===n&&n>1);return`<button class="dg ${n===lv?'on':''}" data-lv="${n}">${n}${neu?`<small>${STEPS[neu].n.replace('足底','').replace('蛙趾','')}</small>`:''}</button>`;}).join('')}</div></div>
+    <div class="dgrid">${Array.from({length:maxLv},(_,i)=>i+1).map(n=>{const neu=ORDER.find(s=>UNLOCK[s]===n&&n>1);return`<button class="dg ${n===lv?'on':''}" data-lv="${n}">${n}${isBossLv(n)?'<small style="color:var(--sign)">Boss</small>':neu?`<small>${STEPS[neu].n.replace('足底','').replace('蛙趾','').replace('足部','')}</small>`:''}</button>`;}).join('')}</div></div>
   <div class="dbg"><b>单独试玩一个项目</b><span class="muted">客人只点这一项，做完再来一位同样的；没解锁的会先跳到解锁那一关</span>
     <div class="dgrid wide">${ORDER.map(s=>`<button class="dg ${DBG.solo===s?'on':''}" data-solo="${s}"><svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[s]}</svg>${STEPS[s].n}<small>第${UNLOCK[s]}关</small></button>`).join('')}</div></div>
   <div class="dbg"><b>其他</b>
@@ -1217,7 +1235,7 @@ function showDebug(){
     const a=b.dataset.act;
     if(a==='coins'){S.coins+=1000;save();hud();sfx.coin();showDebug();}
     else if(a==='god'){DBG.god=!DBG.god;showDebug();}
-    else if(a==='vip'){$('panel').onclick=null;close();const met=VIPS.filter(v=>v.lv<=Math.max(S.day,4));seat(vipSpec(pick(met.length?met:VIPS)));}
+    else if(a==='vip'){$('panel').onclick=null;close();const met=VIPS.filter(v=>v.lv<=Math.max(S.day,4)&&!v.boss);seat(vipSpec(pick(met.length?met:VIPS)));}
     else if(a==='chreset'){S.chSeen={};S.metVip={};save();b.textContent='已重置';b.disabled=true;}
     else if(a==='tut'){$('panel').onclick=null;startTutorial();}
     else if(a==='hints'){S.seen={soak:1,scrub:1};save();b.textContent='已重置，下次用新项目会再提示';b.disabled=true;}
@@ -1542,15 +1560,15 @@ SVC.art={
 const VIPS=[
   {id:'kol',lv:4,n:'网红蛙蛙酱',look:'girl',pal:{h:330,s:.62,v:1},acc:'phone',feat:['lashes','freckles'],kind:'slim',mult:3,traits:[],
     hi:'家人们！今天带大家来体验一家宝藏足浴店～',done:'好评！家人们冲！',bad:'这家店……就不推荐给大家了。',rule:'4 星以上打赏 3 倍',desc:'她会边洗边直播。做得好，打赏翻好几倍。'},
-  {id:'gourmet',lv:8,n:'美食家呱德',look:'grandpa',pal:{h:28,s:.5,v:.85},acc:'beret',feat:['mustache'],kind:'slim',mult:4,traits:['picky'],strict:true,
+  {id:'gourmet',lv:10,boss:true,n:'美食家呱德',look:'grandpa',pal:{h:28,s:.5,v:.85},acc:'beret',feat:['mustache'],kind:'slim',mult:4,traits:['picky'],strict:true,
     hi:'让我品鉴一下……哦不，体验一下你们的手艺。',done:'妙！层次分明，回味悠长！',bad:'差强人意，火候不够。',rule:'每项九成以上才打赏，4 倍',desc:'出了名的嘴刁。每一项都要做到九成以上，才肯掏钱。'},
-  {id:'prince',lv:12,n:'青蛙王子',look:'milk',pal:{h:150,s:.75,v:.92},acc:'crown',feat:['lashes'],kind:'slim',mult:5,traits:[],patK:.55,
+  {id:'prince',lv:20,boss:true,n:'青蛙王子',look:'milk',pal:{h:150,s:.75,v:.92},acc:'crown',feat:['lashes'],kind:'slim',mult:5,traits:[],patK:.55,
     hi:'本王微服私访，听说这里的足道一绝。',done:'赏！本王的脚从未如此尊贵。',bad:'哼，不过如此。',rule:'很有耐心，满意打赏 5 倍',desc:'很有耐心，出手也最阔绰。'},
-  {id:'sumo',lv:16,n:'相扑蛙关',look:'worker',pal:{h:20,s:.55,v:.95},acc:'topknot',feat:['spots'],kind:'round',mult:3,traits:['sweaty'],dirty:true,
+  {id:'sumo',lv:14,n:'相扑蛙关',look:'worker',pal:{h:20,s:.55,v:.95},acc:'topknot',feat:['spots'],kind:'round',mult:3,traits:['sweaty'],dirty:true,
     hi:'刚比完一场，脚底全是土俵的沙！',done:'痛快！下次比赛前还来！',bad:'嗯……下次换一家。',rule:'脚特别脏，打赏 3 倍',desc:'刚下比赛，脚底的泥结成了块。'},
-  {id:'doctor',lv:18,n:'蛙博士',look:'student',pal:{h:200,s:.35,v:1},acc:'mirror',feat:['glasses'],kind:'slim',mult:3,traits:['chatty'],
+  {id:'doctor',lv:17,n:'蛙博士',look:'student',pal:{h:200,s:.35,v:1},acc:'mirror',feat:['glasses'],kind:'slim',mult:3,traits:['chatty'],
     hi:'我来做个实地调研：足疗对青蛙睡眠的影响。',done:'数据显示：非常舒适！',bad:'样本结果不太理想。',rule:'爱聊天，打赏 3 倍',desc:'边做边问问题，答得好他更高兴。'},
-  {id:'onsen',lv:22,n:'温泉老板娘',look:'auntie',pal:{h:350,s:.4,v:1},acc:'kanzashi',feat:['lashes'],kind:'round',mult:4,traits:['picky'],
+  {id:'onsen',lv:30,boss:true,n:'温泉老板娘',look:'auntie',pal:{h:350,s:.4,v:1},acc:'kanzashi',feat:['lashes'],kind:'round',mult:4,traits:['picky'],
     hi:'我自己开温泉的，来看看你们的手艺。',done:'哎呀，比我家的还舒服！',bad:'温泉的水都比你暖心。',rule:'行家，打赏 4 倍',desc:'同行来"考察"了，做得好她会帮你宣传。'}
 ];
 let vipSpawned=false;
@@ -1568,9 +1586,9 @@ function vipSpec(v){
 }
 function newSpec(){
   if(TUT.on||DBG.solo)return makeSpec();
-  const v=VIPS.find(v=>v.lv===S.day);
+  const v=VIPS.find(v=>v.lv===S.day&&!v.boss);
   if(v&&!vipSpawned&&spawned>=1){vipSpawned=true;return vipSpec(v);}
-  const met=VIPS.filter(v=>v.lv<S.day);
+  const met=VIPS.filter(v=>v.lv<S.day&&!v.boss);
   if(!vipSpawned&&met.length&&spawned>=1&&Math.random()<(S.day>=21?.16:.07)+decoEff('vip')){vipSpawned=true;return vipSpec(pick(met));}
   return makeSpec();
 }
@@ -1636,6 +1654,9 @@ const SET_TIP={1:.05,2:.06,3:.08};
 const SLOTS=[[26,476],[70,476],[28,420],[334,476],[290,476],[332,420]],FLOOR=474,RUGY=428;
 function dPot(c,x,y,col){c.fillStyle=col||'#b5653a';c.strokeStyle='#5a2a14';c.lineWidth=1.5;c.beginPath();c.moveTo(x-14,y-20);c.lineTo(x+14,y-20);c.lineTo(x+10,y);c.lineTo(x-10,y);c.closePath();c.fill();c.stroke();}
 const DECOS=[
+  {id:'spoon',ch:0,n:'呱德的金汤勺',price:0,eff:{tip:.05},trophy:1,draw(c,x,y,t){c.save();c.translate(x,y-14);c.rotate(-.5);c.fillStyle='#f0bd3c';c.strokeStyle='#8a6a14';c.lineWidth=1.3;c.beginPath();c.ellipse(0,-10,6,8,0,0,TAU);c.fill();c.stroke();c.fillRect(-1.5,-2,3,18);c.strokeRect(-1.5,-2,3,18);c.restore();}},
+  {id:'crownT',ch:0,n:'王子的小皇冠',price:0,eff:{tip:.05},trophy:1,draw(c,x,y,t){c.fillStyle='#b8322a';c.beginPath();c.roundRect(x-11,y-6,22,6,2);c.fill();c.fillStyle='#f0bd3c';c.strokeStyle='#8a6a14';c.lineWidth=1.2;c.beginPath();c.moveTo(x-9,y-6);c.lineTo(x-10,y-18);c.lineTo(x-4,y-11);c.lineTo(x,y-20);c.lineTo(x+4,y-11);c.lineTo(x+10,y-18);c.lineTo(x+9,y-6);c.closePath();c.fill();c.stroke();c.fillStyle='#4b6fd6';circ(c,x,y-10,1.8);}},
+  {id:'fan',ch:0,n:'老板娘的金扇',price:0,eff:{tip:.05},trophy:1,draw(c,x,y,t){c.fillStyle='#f6e3b0';c.strokeStyle='#8a6a14';c.lineWidth=1.2;c.beginPath();c.moveTo(x,y-2);c.arc(x,y-2,15,Math.PI*1.15,Math.PI*1.85);c.closePath();c.fill();c.stroke();c.strokeStyle='#c4302a';for(let a=1.2;a<=1.8;a+=.15){c.beginPath();c.moveTo(x,y-2);c.lineTo(x+Math.cos(a*Math.PI)*15,y-2+Math.sin(a*Math.PI)*15);c.stroke();}c.fillStyle='#f48fb8';circ(c,x-4,y-11,2.5);}},
   {id:'lotus',ch:1,n:'荷花盆栽',price:300,eff:{pat:.05},slot:0,draw(c,x,y,t){dPot(c,x,y);c.fillStyle='#5fae55';c.strokeStyle='#2f5e28';c.lineWidth=1.2;c.beginPath();c.ellipse(x-9,y-30,11,5,-.5,0,TAU);c.fill();c.stroke();c.beginPath();c.ellipse(x+10,y-34,11,5,.4,0,TAU);c.fill();c.stroke();c.strokeStyle='#3f7d3a';c.lineWidth=2;c.beginPath();c.moveTo(x,y-20);c.lineTo(x+1,y-46);c.stroke();c.fillStyle='#f48fb8';c.strokeStyle='#b4507a';c.lineWidth=1;for(const a of [-.5,0,.5]){c.save();c.translate(x+1,y-48);c.rotate(a);c.beginPath();c.ellipse(0,-6,4,8,0,0,TAU);c.fill();c.stroke();c.restore();}}},
   {id:'luckyfrog',ch:1,n:'招财蛙摆件',price:450,eff:{tip:.05},slot:3,draw(c,x,y,t){c.fillStyle='#8a5a2b';c.fillRect(x-16,y-6,32,6);c.fillStyle='#f0bd3c';c.strokeStyle='#8a6a14';c.lineWidth=1.5;c.beginPath();c.ellipse(x,y-17,14,12,0,0,TAU);c.fill();c.stroke();circ(c,x-7,y-29,5);circ(c,x+7,y-29,5);c.fillStyle='#2b2118';circ(c,x-7,y-29,2);circ(c,x+7,y-29,2);c.fillStyle='#c4302a';circ(c,x,y-13,5);c.fillStyle='#f5d27a';c.font=`7px ${DISPLAY}`;c.textAlign='center';c.fillText('¥',x,y-11);}},
   {id:'chime',ch:1,n:'竹风铃',price:600,eff:{qte:.15},slot:2,draw(c,x,y,t){c.strokeStyle='#8a5a2b';c.lineWidth=2.5;c.beginPath();c.moveTo(x-10,y);c.lineTo(x-10,y-56);c.lineTo(x+10,y-56);c.stroke();c.lineWidth=1;for(let i=0;i<4;i++){const sw=Math.sin(t*2+i)*2;c.strokeStyle='#5a3a1a';c.beginPath();c.moveTo(x+2+i*3,y-56);c.lineTo(x+2+i*3+sw,y-44+i*2);c.stroke();c.fillStyle='#c9b27a';c.fillRect(x+i*3+sw,y-44+i*2,3,10);}c.fillStyle='#8a5a2b';c.fillRect(x-16,y-3,14,3);}},
@@ -1656,7 +1677,8 @@ const DECOS=[
   {id:'pebbles',ch:3,n:'鹅卵石步道',price:3000,eff:{boss:.10},slot:-1,draw(c,x,y,t){for(let i=0;i<13;i++){const px=96+i*14+(i%2)*4,py=y-6+(i%3-1)*3;c.fillStyle=['#a8b4b8','#c7cfd1','#8c979a'][i%3];c.strokeStyle='#5a6568';c.lineWidth=1;c.beginPath();c.ellipse(px,py,7,4.5,0,0,TAU);c.fill();c.stroke();}}}
 ];
 function decoEff(k){let v=0;for(const d of DECOS)if(S.deco&&S.deco[d.id]&&d.eff[k])v+=d.eff[k];if(k==='tip')for(const ch of [1,2,3])if(DECOS.filter(d=>d.ch===ch).every(d=>S.deco&&S.deco[d.id]))v+=SET_TIP[ch];return v;}
-function drawDecor(c,t){const ch=chOf(S.day);const own=DECOS.filter(d=>d.ch===ch&&S.deco&&S.deco[d.id]);
+function drawDecor(c,t){const tro=DECOS.filter(d=>d.trophy&&S.deco&&S.deco[d.id]);if(tro.length){c.fillStyle='#8a5a2b';c.strokeStyle='#4d2c12';c.lineWidth=1.5;c.beginPath();c.roundRect(300,416,58,5,2);c.fill();c.stroke();c.fillRect(304,421,3,10);c.fillRect(351,421,3,10);tro.forEach((d,i)=>d.draw(c,312+i*18,416,t));}
+  const ch=chOf(S.day);const own=DECOS.filter(d=>d.ch===ch&&S.deco&&S.deco[d.id]);
   for(const d of own)if(d.slot<0)d.draw(c,180,RUGY,t);
   for(const d of own)if(d.slot>=0){const [x,y]=SLOTS.at(d.slot);d.draw(c,x,y,t);}}
 const DECO_IMG={};
@@ -1677,6 +1699,98 @@ function decoShopHtml(){
   return html;
 }
 
+
+/* ---------- boss levels ---------- */
+const BOSS_LV={10:'gourmet',20:'prince',30:'onsen'};
+const BOSS_N={10:6,20:7,30:8};
+const BOSS_REWARD={10:1500,20:4000,30:8000};
+const BOSS_START={10:60,20:55,30:50};
+const BOSS_INFO={
+  gourmet:{title:'第一章 Boss',intro:'荷塘最挑剔的美食家来了。他点了全套服务，每一项都要做到他满意。',lines:{win:'妙！这才叫手艺！我给你写一篇好评。',lose:'哼，我还是去别家吧。'}},
+  prince:{title:'第二章 Boss',intro:'青蛙王子亲自驾到。王室的脚可不能有一点闪失。',lines:{win:'赏！本王宣布这里是王室指定足浴店！',lose:'来人，摆驾回宫。'}},
+  onsen:{title:'第三章 Boss',intro:'温泉山庄的老板娘来"踢馆"了。同行最懂行，糊弄不过去。',lines:{win:'服了服了，以后我的客人都介绍给你。',lose:'还嫩着呢，再练练吧。'}}
+};
+const TROPHY={gourmet:'spoon',prince:'crownT',onsen:'fan'};
+const isBossLv=lv=>!!BOSS_LV[lv];
+let bossRun=null;
+function bossSpec(){
+  const lv=S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),U=cfg(lv).unlock,n=Math.min(U.length,BOSS_N[lv]);
+  const sp=vipSpec(v);
+  const want=new Set(U.slice().sort((a,b)=>UNLOCK[b]-UNLOCK[a]).slice(0,Math.min(3,n)));
+  const rest=U.filter(s=>!want.has(s)).sort(()=>Math.random()-.5);while(want.size<n&&rest.length)want.add(rest.pop());
+  sp.steps=ORDER.filter(s=>want.has(s));sp.boss=true;sp.traits=[];sp.herb=null;sp.lvl=1;
+  return sp;
+}
+function showBossIntro(){
+  const lv=S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),bi=BOSS_INFO[v.id],start=Math.round(BOSS_START[lv]+decoEff('boss')*100);
+  S.metVip=S.metVip||{};S.metVip[v.id]=1;save();
+  open(`<div class="bosscard"><span class="bk">${bi.title} · 第 ${lv} 关</span><b>${v.n}</b><p>${bi.intro}</p></div>
+  <ul class="news">
+    <li>只有这一位客人，没有排队</li>
+    <li>耐心条变成<b>满意度</b>，起点 ${start}${decoEff('boss')>0?`（地垫加成 +${Math.round(decoEff('boss')*100)}）`:'（买地垫能提高起点）'}</li>
+    <li>每项做得越好，满意度涨得越多；出错、拖太久会掉</li>
+    <li>他中途会提要求，照做有奖励</li>
+    <li>全部做完时：满意度 60 以上 1 星，75 以上 2 星，90 以上 3 星；掉到 0 就失败</li>
+  </ul>
+  <div class="receipt"><div class="row"><span>通关奖励</span><span class="dots"></span><span>最高 ¥${BOSS_REWARD[lv]}</span></div><div class="row"><span>纪念品</span><span class="dots"></span><span>${DECOS.find(d=>d.id===TROPHY[v.id]).n}</span></div></div>
+  <div class="btns"><button class="btn" id="openBtn">迎接 Boss</button></div>`);
+  tone(196,196,.25,'sawtooth',.06);tone(185,185,.25,'sawtooth',.06,.25);tone(262,262,.5,'sawtooth',.07,.5);
+  $('openBtn').onclick=()=>{close();spawned=1;BQ=[];bossRun={lv,demands:0,spd:null};seat(bossSpec());
+    C.pat=start;C.boss=true;shake=.5;addFT('BOSS',180,70,'#ff7a5c',34,1);renderTicket();hud();};
+}
+const DEMANDS=[
+  {id:'speed',text:'下一项 15 秒内做完！',say:['手脚麻利点，下一项给我 15 秒！','本王赶时间，下一项快点！']},
+  {id:'perfect',text:'下一项一点错都不许出！',say:['下一项要是有半点差错，我可不客气。','下一项给我做到完美。']},
+  {id:'add',text:'临时加一项',say:['对了，再给我加一项！','忽然想起来，再加一项。']}
+];
+function bossAfterFinish(step,q){
+  if(!C||!C.boss)return;
+  const d=C.demand;let bonus=0;
+  if(d&&d.step===step){
+    if(d.id==='speed'){const el=(performance.now()-d.t0)/1000;bonus=el<=15?10:-12;addFT(el<=15?'按时完成 满意度 +10':'超时了 满意度 −12',180,300,el<=15?'#b8f5c0':'#ff8a80',16,1);}
+    if(d.id==='perfect'){bonus=q>=.9?10:-14;addFT(q>=.9?'完美 满意度 +10':'有差错 满意度 −14',180,300,q>=.9?'#b8f5c0':'#ff8a80',16,1);}
+    C.demand=null;
+  }
+  const g=Math.round((q-.5)*50)+bonus;C.pat=clamp(C.pat+g,0,100);
+  addFT(`满意度 ${g>=0?'+':''}${g}`,180,330,g>=0?'#f5c95c':'#ff8a80',18,1);
+  renderTicket();
+  const left=C.steps.length-C.si;
+  if(left>=1&&bossRun&&bossRun.demands<2&&(C.si===2||C.si===4)){
+    bossRun.demands++;
+    const pool=DEMANDS.filter(x=>x.id!=='add'||cfg(S.day).unlock.some(s=>!C.steps.includes(s)));const dm=pick(pool);
+    setTimeout(()=>{if(!C||!C.boss||C.done)return;
+      if(dm.id==='add'){const U=cfg(S.day).unlock.filter(s=>!C.steps.includes(s)),s=pick(U);if(SVC[s])SVC[s].init(true);if(s==='paint')C.paint=genPaint(S.day);if(s==='trim')C.nails=genNails(S.day,true);if(s==='peel')buildPeel(cfg(S.day).patches);
+        const rem=C.steps.slice(C.si);C.steps=C.steps.slice(0,C.si).concat(ORDER.filter(x=>rem.includes(x)||x===s));C.added=s;say(`${pick(dm.say)}「${STEPS[s].n}」`);}
+      else{C.demand={id:dm.id,step:C.steps[C.si],t0:performance.now()};say(pick(dm.say));}
+      sfx.croak();R.sacT=.6;shake=.25;renderTicket();flashInstr('Boss 提要求了！看单子');addFT('Boss 要求',180,64,'#ff9a6b',22,1);},900);
+  }
+}
+function bossEnd(win){
+  const lv=bossRun?bossRun.lv:S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),bi=BOSS_INFO[v.id],sat=Math.round(clamp(C.pat,0,100));
+  const stars=win?(sat>=90?3:sat>=75?2:sat>=60?1:0):0;
+  bossRun=null;
+  if(!stars){
+    setFace('angry',99);sfx.bad();
+    setTimeout(()=>{open(`<div class="bosscard lose"><span class="bk">挑战失败</span><b>${v.n}</b><p>「${bi.lines.lose}」</p></div>
+      <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div><div class="row"><span>1 星需要</span><span class="dots"></span><span>60</span></div></div>
+      <p class="muted">${sat>0?'项目都做完了，但满意度不够。每项做得更好、少出错，就能涨上去。':'满意度掉到 0 了。注意别拿错工具、别拖太久。'}${decoEff('boss')<.3?' 买地垫能提高满意度起点。':''}</p>
+      <div class="btns"><button class="btn" id="retryBtn">再挑战一次</button><button class="btn ghost" id="bossShop">先去商店</button></div>`);
+      $('retryBtn').onclick=startDay;$('bossShop').onclick=()=>{shopTab='deco';showShop();};},600);
+    return;}
+  const reward=Math.round(BOSS_REWARD[lv]*(.5+stars/6)/10)*10,trophy=TROPHY[v.id],first=!S.deco[trophy];
+  S.coins+=reward;S.deco[trophy]=1;S.best=S.best||{};S.best[lv]=Math.max(S.best[lv]||0,stars);S.day++;S.served++;save();hud();popCoin();
+  setFace('bliss',99);
+  tone(523,523,.15,'triangle',.09);tone(659,659,.15,'triangle',.09,.15);tone(784,784,.15,'triangle',.09,.3);tone(1047,1047,.5,'triangle',.09,.45);
+  const T=DECOS.find(d=>d.id===trophy);
+  setTimeout(()=>{open(`<div class="bosscard win"><span class="bk">Boss 搞定！</span><b>${v.n}</b><p>「${bi.lines.win}」</p></div>
+    <div class="bigstars">${'★'.repeat(stars)}<span>${'★'.repeat(3-stars)}</span></div>
+    <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div><div class="row total"><span>通关奖励</span><span class="dots"></span><span>¥${reward}</span></div></div>
+    ${first?`<div class="unlockcard"><img src="${decoIcon(T)}" alt="" style="width:44px;height:44px"><div><b>获得纪念品：${T.n}</b><span>摆在店里的展示架上 · 小费 +5%</span></div></div>`:''}
+    ${stars<3?'<p class="muted">满意度 90 以上就是 3 星，可以之后回来再挑战。</p>':''}
+    <div class="btns"><button class="btn" id="shopBtn">${BOSS_LV[lv]&&lv<30?'进入下一章':'继续营业'}</button></div>`);
+    $('shopBtn').onclick=showShop;},700);
+}
+
 /* ---------- update ---------- */
 function update(dt,t){
   if(!C)return;
@@ -1693,7 +1807,7 @@ function update(dt,t){
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
-    if(!DBG.god&&!TUT.on)C.pat-=dt*K.decay*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1);
+    if(!DBG.god&&!TUT.on)C.pat-=dt*K.decay*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1)*(C.boss?.35:1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
     if(!TUT.on&&!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
     if(Q){if(!TUT.on)Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
@@ -1738,7 +1852,8 @@ function update(dt,t){
   for(let i=PS.length-1;i>=0;i--){const p=PS[i];p.life-=dt;if(p.life<=0){PS.splice(i,1);continue;}p.x+=p.vx*dt;p.y+=p.vy*dt;
     if(p.k==='mud'||p.k==='chip'||p.k==='curl'||p.k==='hair'||p.k==='drop')p.vy+=420*dt;if(p.k==='spark')p.vy+=200*dt;if(p.k==='steam')p.r+=8*dt;if(p.rot!=null)p.rot+=p.vr*dt;}
   for(let i=FT.length-1;i>=0;i--){const f=FT[i];f.life-=dt;f.y-=28*dt;if(f.life<=0)FT.splice(i,1);}
-  const pb=$('patBar');const pv=clamp(C.pat,0,100);pb.style.width=pv+'%';pb.style.background=pv>60?'var(--good)':pv>30?'var(--warn)':'var(--bad)';
+  if(C.boss&&!C.done&&Math.random()<.1)hud();
+  const pb=$('patBar');const pv=clamp(C.pat,0,100);pb.style.width=pv+'%';pb.style.background=C.boss?(pv>=90?'#e0a72e':pv>=60?'var(--gold)':'var(--bad)'):pv>60?'var(--good)':pv>30?'var(--warn)':'var(--bad)';
 }
 
 /* ---------- drawing ---------- */
