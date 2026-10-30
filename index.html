@@ -120,6 +120,17 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .item.lock{opacity:.55}
 .menu .x{color:var(--ink-soft);font-size:11px}
 
+.dbg{display:flex;flex-direction:column;gap:6px}
+.dbg>b{font-size:14px}
+.dgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.dgrid.wide{grid-template-columns:repeat(2,1fr)}
+.dg{border:1.5px solid var(--paper-line);background:#fff;border-radius:8px;padding:7px 4px;font-size:13px;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.25;font-variant-numeric:tabular-nums}
+.dgrid.wide .dg{flex-direction:row;justify-content:center;gap:5px;flex-wrap:wrap}
+.dg small{font-size:10.5px;color:var(--ink-soft)}
+.dg svg{width:20px;height:20px}
+.dg.on{border-color:var(--sign);background:#fde7e3}
+.dg[disabled]{opacity:.4;cursor:not-allowed}
+
 /* tray */
 .tray{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--wood-dark);padding:6px;border-radius:12px;box-shadow:inset 0 2px 0 rgba(255,255,255,.12)}
 .tool{border:0;border-radius:9px;background:linear-gradient(var(--wood-light),var(--wood));box-shadow:0 3px 0 #4d2c12;padding:6px 2px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;color:var(--ink)}
@@ -622,7 +633,7 @@ function flashInstr(t){setInstr(t);const b=$('instrBox');b.classList.remove('fla
 function progress(v){const w=$('progWrap');if(v==null){w.hidden=true;return;}w.hidden=false;$('prog').style.width=(clamp(v,0,1)*100)+'%';}
 function setFace(f,t){if(f!==face){if(f==='ouch')R.jv=-260;if(f==='hot')R.jv=-160;if(f==='angry')R.sacT=.6;}if(f==='tickle')R.tick=1;face=f;faceT=t;}
 const baseFace=()=>C&&C.pat<30?'angry':'neutral';
-function hud(){$('dayChip').textContent=`第${S.day}关 · ★${totalStars()}`;$('coinChip').textContent='¥'+S.coins;if(C)$('custCount').textContent=`${Math.min(doneCount+1,dayCount())}/${dayCount()} 位 · ¥${dayEarn}`;}
+function hud(){$('dayChip').textContent=DBG.solo?`试玩 · ${STEPS[DBG.solo].n}`:`第${S.day}关 · ★${totalStars()}`;$('coinChip').textContent='¥'+S.coins;if(C)$('custCount').textContent=`${Math.min(doneCount+1,dayCount())}/${dayCount()} 位 · ¥${dayEarn}`;}
 function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');}
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
@@ -933,8 +944,8 @@ function showReceipt(rows,tip,cut,total,stars,line,angry,extras){
     <div class="row total"><span>实收</span><span class="dots"></span><span>¥${total}</span></div>
   </div>
   ${lvBar(got)}
-  <div class="btns"><button class="btn" id="nextBtn">${last?'本关结算':'下一位客人'}</button></div>`);
-  $('nextBtn').onclick=()=>{doneCount++;if(doneCount+missed>=dayCount())showDayEnd();else{close();nextCustomer();}};
+  <div class="btns"><button class="btn" id="nextBtn">${DBG.solo?'再来一位（试玩中）':last?'本关结算':'下一位客人'}</button></div>`);
+  $('nextBtn').onclick=()=>{if(DBG.solo){close();seatSolo(DBG.solo);return;}doneCount++;if(doneCount+missed>=dayCount())showDayEnd();else{close();nextCustomer();}};
 }
 function lvBar(got){
   const g=starGoals(dayGoal),pct=Math.min(100,dayEarn/g.at(2)*100);
@@ -983,7 +994,7 @@ function showShop(){
   $('shopList').onclick=e=>{const b=e.target.closest('.buy');if(!b||b.disabled)return;const u=UPG.find(x=>x.id===b.dataset.u);const c=upCost(u,S.up[u.id]);if(S.coins<c)return;S.coins-=c;S.up[u.id]++;save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=startDay;
 }
-function startDay(){dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
+function startDay(){DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
 function showLevelIntro(){
   const lv=S.day,g=starGoals(dayGoal),neu=ORDER.find(s=>UNLOCK[s]===lv&&lv>1);
   const news=(NEWS[lv]||(lv>13?['客人更多、更急，泥更硬、按摩更快']:[])).filter(x=>!neu||!x.startsWith('解锁'));
@@ -1009,7 +1020,7 @@ function showTitle(){
   $('startBtn').onclick=()=>{ac();startDay();};
   const rb=$('resetBtn');if(rb){let arm=false;rb.onclick=()=>{if(!arm){arm=true;rb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();showTitle();};}
 }
-function open(html){$('panel').innerHTML=html;$('ov').hidden=false;paused=true;hold=false;scrubbing=false;peeling=false;const b=$('panel').querySelector('.btn');if(b)b.focus({preventScroll:true});}
+function open(html){$('panel').onclick=null;$('panel').innerHTML=html;$('ov').hidden=false;paused=true;hold=false;scrubbing=false;peeling=false;const b=$('panel').querySelector('.btn');if(b)b.focus({preventScroll:true});}
 function close(){$('ov').hidden=true;paused=false;}
 
 function showMenu(){
@@ -1017,8 +1028,9 @@ function showMenu(){
   open(`<h2>暂停</h2>
   <p class="muted">第 ${S.day} 关 · 钱包 ¥${S.coins} · 共 ${totalStars()} 颗星 · 累计服务 ${S.served} 位客人</p>
   <div class="btns"><button class="btn" id="resumeBtn">继续营业</button></div>
-  <div class="btns"><button class="btn ghost" id="restartBtn">重开本关</button><button class="btn ghost" id="wipeBtn">清空存档，从第 1 关开始</button></div>`);
+  <div class="btns"><button class="btn ghost" id="dbgBtn">调试工具</button><button class="btn ghost" id="restartBtn">重开本关</button><button class="btn ghost" id="wipeBtn">清空存档，从第 1 关开始</button></div>`);
   $('resumeBtn').onclick=close;
+  $('dbgBtn').onclick=showDebug;
   $('restartBtn').onclick=()=>{S.coins-=dayEarn;if(S.coins<0)S.coins=0;S.served-=dayStars.length;save();startDay();};
   let arm=false;const wb=$('wipeBtn');
   wb.onclick=()=>{if(!arm){arm=true;wb.textContent='再点一次确认清空';return;}const m=S.muted;S=def();S.muted=m;save();hud();BQ=[];dayGoal=goalFor(1);seat(makeSpec());entry=1;showTitle();};
@@ -1026,6 +1038,49 @@ function showMenu(){
 $('menuBtn').onclick=()=>{ac();showMenu();};
 $('muteBtn').onclick=()=>{S.muted=!S.muted;save();ac();setMuteIcon();};
 function setMuteIcon(){$('muteIco').innerHTML=S.muted?'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/>':'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/>';}
+
+
+/* ---------- debug tools ---------- */
+const DBG={god:false,solo:null};
+function seatSolo(svc){
+  const sp=makeSpec();sp.steps=[svc];
+  sp.herb=svc==='soak'&&cfg(S.day).herbs&&Math.random()<.6?pick(HERBS):null;
+  sp.traits=sp.traits.filter(k=>!TRAITS[k].need||TRAITS[k].need===svc);
+  BQ=[];spawned=dayCount();renderBench();seat(sp);hud();
+}
+function showDebug(){
+  const lv=S.day,maxLv=15;
+  open(`<h2>调试工具</h2>
+  <p class="muted">用来提前看后面的关卡和项目。跳关会改动存档里的关卡进度。</p>
+  <div class="dbg"><b>跳到关卡</b><span class="muted">直接开始那一关（难度、新内容都按那一关来）</span>
+    <div class="dgrid">${Array.from({length:maxLv},(_,i)=>i+1).map(n=>{const neu=ORDER.find(s=>UNLOCK[s]===n&&n>1);return`<button class="dg ${n===lv?'on':''}" data-lv="${n}">${n}${neu?`<small>${STEPS[neu].n.replace('足底','').replace('蛙趾','')}</small>`:''}</button>`;}).join('')}</div></div>
+  <div class="dbg"><b>单独试玩一个项目</b><span class="muted">客人只点这一项，做完再来一位同样的；没解锁的会先跳到解锁那一关</span>
+    <div class="dgrid wide">${ORDER.map(s=>`<button class="dg ${DBG.solo===s?'on':''}" data-solo="${s}"><svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[s]}</svg>${STEPS[s].n}<small>第${UNLOCK[s]}关</small></button>`).join('')}</div></div>
+  <div class="dbg"><b>其他</b>
+    <div class="dgrid wide">
+      <button class="dg" data-act="coins">钱 +¥1000</button>
+      <button class="dg ${DBG.god?'on':''}" data-act="god">耐心不减：${DBG.god?'开':'关'}</button>
+      <button class="dg" data-act="qte" ${C&&!C.done?'':'disabled'}>触发突发状况</button>
+      <button class="dg" data-act="event" ${C&&!C.done?'':'disabled'}>触发客人改单</button>
+      <button class="dg" data-act="chat" ${C&&!C.done?'':'disabled'}>触发聊天</button>
+      <button class="dg" data-act="queue">长凳坐满 3 位</button>
+    </div></div>
+  <div class="btns">${DBG.solo?'<button class="btn ghost" id="soloExit">退出试玩，重开本关</button>':''}<button class="btn" id="dbgBack">返回游戏</button></div>`);
+  $('panel').onclick=e=>{
+    const b=e.target.closest('button');if(!b||b.disabled)return;
+    if(b.dataset.lv){$('panel').onclick=null;DBG.solo=null;S.day=+b.dataset.lv;save();hud();startDay();return;}
+    if(b.dataset.solo){$('panel').onclick=null;const sv=b.dataset.solo;DBG.solo=sv;if(S.day<UNLOCK[sv])S.day=UNLOCK[sv];save();dayEarn=0;dayStars=[];doneCount=0;missed=0;dayGoal=goalFor(S.day);close();seatSolo(sv);return;}
+    const a=b.dataset.act;
+    if(a==='coins'){S.coins+=1000;save();hud();sfx.coin();showDebug();}
+    else if(a==='god'){DBG.god=!DBG.god;showDebug();}
+    else if(a==='queue'){$('panel').onclick=null;close();while(BQ.length<3){BQ.push(makeSpec());}renderBench();}
+    else if(a==='qte'){$('panel').onclick=null;close();setTimeout(()=>{if(C&&!C.done){Q=null;startQTE();}},250);}
+    else if(a==='event'){$('panel').onclick=null;close();setTimeout(()=>{if(C&&!C.done&&!M)serviceEvent();else flashInstr('先把手上这一步做完再触发改单');},250);}
+    else if(a==='chat'){$('panel').onclick=null;close();setTimeout(()=>{if(C&&!C.done){closeChat();openChat();}},250);}
+  };
+  if($('soloExit'))$('soloExit').onclick=()=>{$('panel').onclick=null;DBG.solo=null;startDay();};
+  $('dbgBack').onclick=()=>{$('panel').onclick=null;close();};
+}
 
 /* ---------- update ---------- */
 function update(dt,t){
@@ -1043,12 +1098,12 @@ function update(dt,t){
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
-    C.pat-=dt*K.decay*(1-.12*S.up.aroma)*.95*C.kind.pat*(C.has('rush')?1.35:1);
+    if(!DBG.god)C.pat-=dt*K.decay*(1-.12*S.up.aroma)*.95*C.kind.pat*(C.has('rush')?1.35:1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
     if(!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
     if(Q){Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
     arriveT-=dt;if(arriveT<=0&&spawned<dayCount()&&BQ.length<3){BQ.push(makeSpec());spawned++;arriveT=K.arrive*(.8+Math.random()*.4);renderBench();sfx.croak();}
-    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];sp.wpat-=dt*100/K.wait;if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
+    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];if(!DBG.god)sp.wpat-=dt*100/K.wait;if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
     updateBenchBars();
     if(C.has('chatty')&&!chatOpen&&!Q&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
     if(chatOpen){chatOpen.t-=dt;const tm=$('chatTm');if(tm)tm.style.width=(chatOpen.t/chatOpen.max*100)+'%';if(chatOpen.t<=0)answerChat(-1);}
