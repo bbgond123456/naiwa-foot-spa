@@ -212,6 +212,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .decoit .buy{min-width:0;width:100%;padding:5px 2px;font-size:12px;grid-row:auto;grid-column:auto}
 
 .bosscard{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:linear-gradient(#3a1a14,#6a2418);color:#fbe7c8;border-radius:12px;padding:14px 12px;box-shadow:inset 0 0 0 2px #e0a72e}
+.news li.brule{background:#fff1d6;border-radius:8px;padding:6px 8px;list-style:none;margin-left:-14px;box-shadow:inset 0 0 0 1.5px #e0a72e}
 .bosscard .bk{font-size:12px;letter-spacing:.3em;color:#f5c95c}
 .bosscard b{font-family:var(--display);font-weight:400;font-size:32px;color:#ffd58a}
 .bosscard p{margin:0;font-size:14px;line-height:1.6}
@@ -757,7 +758,8 @@ function drawBlade(c,x,y){c.save();c.translate(x,y);c.rotate(-.5);c.fillStyle='#
 function say(t){$('quote').textContent='「'+t+'」';}
 function setInstr(t){$('instr').textContent=t;}
 function flashInstr(t){setInstr(t);const b=$('instrBox');b.classList.remove('flash');void b.offsetWidth;b.classList.add('flash');}
-function progress(v){const w=$('progWrap');if(v==null){w.hidden=true;return;}w.hidden=false;$('prog').style.width=(clamp(v,0,1)*100)+'%';}
+let progV=0;
+function progress(v){progV=v==null?0:clamp(v,0,1);const w=$('progWrap');if(v==null){w.hidden=true;return;}w.hidden=false;$('prog').style.width=(clamp(v,0,1)*100)+'%';}
 function setFace(f,t){if(f!==face){if(f==='ouch')R.jv=-260;if(f==='hot')R.jv=-160;if(f==='angry')R.sacT=.6;}if(f==='tickle')R.tick=1;face=f;faceT=t;}
 const baseFace=()=>C&&C.pat<30?'angry':'neutral';
 function hud(){$('dayChip').textContent=DBG.solo?`试玩 · ${STEPS[DBG.solo].n}`:`第${S.day}关 ★${totalStars()}`;$('coinChip').textContent=S.coins>=10000?'¥'+(S.coins/10000).toFixed(1)+'万':'¥'+S.coins;if(C&&C.boss)$('custCount').textContent=`Boss 战 · 满意度 ${Math.round(C.pat)}`;else if(C)$('custCount').textContent=`${Math.min(doneCount+1,dayCount())}/${dayCount()} 位 · ¥${dayEarn}`;}
@@ -765,7 +767,7 @@ function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offset
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
   $('patLbl').textContent=C.boss?'满意度':'耐心';$('patWrap').classList.toggle('boss',!!C.boss);
-  const tg=(C.boss?`<span class="tg boss">BOSS · 满意度 60/75/90 = 1/2/3 星</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
+  const tg=(C.boss?`<span class="tg boss">BOSS${bossRun&&BM_TAG[bossRun.id]?' · '+BM_TAG[bossRun.id]:''} · 满意度 60/75/90 = 1/2/3 星</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
   $('tags').innerHTML=tg;$('tags').hidden=!tg;
   $('chips').innerHTML=C.steps.map((s,i)=>{
     const cls=C.q[s]!=null?'done':(i===C.si?'cur':'');
@@ -803,6 +805,7 @@ function useTool(id,btn){
   if(TUT.on){if(!TUT.expect)return;if(id!==TUT.expect){flashInstr('先点亮起来的那个');sfx.bad();return;}}
   if(id!=='towel'&&UNLOCK[id]>S.day){flashInstr(`「${STEPS[id].n}」第 ${UNLOCK[id]} 天解锁`);return;}
   if(M){flashInstr('先把手上这一步做完');return;}
+  if(C.boss&&bmBlock(id))return;
   if(id==='towel'){
     if(C.boss&&C.si<C.steps.length){flashInstr('Boss 的项目还没做完，不能结账');sfx.bad();return;}
     if(C.si<C.steps.length&&!towelArm){towelArm=true;flashInstr('还有项目没做，再点一次毛巾直接结账');setTimeout(()=>towelArm=false,2600);return;}
@@ -932,6 +935,7 @@ cv.addEventListener('pointerdown',e=>{
   try{cv.setPointerCapture(e.pointerId);}catch(_){}
   ptr=ptOf(e);const [x,y]=toFoot(ptr[0],ptr[1]);ptrF=[x,y];
   if(Q){const qp=qPos();if(Math.hypot(ptr[0]-qp[0],ptr[1]-qp[1])<38){qteHit();return;}}
+  if(C.boss&&bmDown(x,y,ptr[0],ptr[1]))return;
   if(!M)return;
   if(SVC[M.type]){lastP=[x,y];SVC[M.type].down(x,y);return;}
   if(M.type==='soak')hold=true;
@@ -942,7 +946,8 @@ cv.addEventListener('pointerdown',e=>{
   else if(M.type==='paint')tryPaint(x,y);
 });
 cv.addEventListener('pointermove',e=>{
-  ptr=ptOf(e);const p=toFoot(ptr[0],ptr[1]);ptrF=p;
+  const pp=ptr;ptr=ptOf(e);const p=toFoot(ptr[0],ptr[1]);ptrF=p;
+  if(C&&C.boss&&pp&&e.buttons)bmMove(Math.hypot(ptr[0]-pp[0],ptr[1]-pp[1]),e.timeStamp);
   if(M&&SVC[M.type]){if(!paused&&SVC[M.type].move)SVC[M.type].move(p,lastP,Math.hypot(p[0]-lastP[0],p[1]-lastP[1]));lastP=p;return;}
   if(peeling&&M&&M.type==='peel'){
     const dx=p[0]-lastP[0],dy=p[1]-lastP[1],moved=Math.hypot(dx,dy),now=performance.now(),spd=moved/Math.max(8,now-M.lastT)*1000;M.lastT=now;
@@ -993,7 +998,7 @@ function kickFoot(){
 }
 function holdRelease(){if(M&&M.type==='massage'&&M.holding&&M.hfill<1){const p=M.seq[M.k].p;M.holding=false;C.pat-=3;addFT('力道不够',p.x,p.y-30,'#ff8a80',16);sfx.bad();nextPoint();}}
 function curlDrop(){if(M&&M.type==='peel'&&M.curl&&M.curl.s>2.5){const s=M.curl.s;PS.push({k:'curl',x:M.curl.x,y:M.curl.y,vx:(Math.random()-.5)*70,vy:-50-Math.random()*40,life:1.5,max:1.5,r:s,rot:0,vr:(Math.random()-.5)*7});tone(520,220,.09,'triangle',.08);M.curls++;if(s>13){addFT(pick(['好大一团！','滑溜溜～','真解压']),M.curl.x,M.curl.y-18,'#fff3c4',16);say(pick(['脚底变得滑溜溜的。','刮完脚底好轻！','舒服，再来一下。']));}}if(M&&M.curl)M.curl.s=0;if(M)M.badStroke=false;}
-const release=()=>{if(M&&SVC[M.type]&&SVC[M.type].up)SVC[M.type].up();curlDrop();peeling=false;hold=false;scrubbing=false;if(Q)Q.holding=false;if(M&&M.type==='trim')M.filing=false;holdRelease();};
+const release=()=>{bmUp();if(M&&SVC[M.type]&&SVC[M.type].up)SVC[M.type].up();curlDrop();peeling=false;hold=false;scrubbing=false;if(Q)Q.holding=false;if(M&&M.type==='trim')M.filing=false;holdRelease();};
 cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',release);cv.addEventListener('pointerleave',()=>{release();ptr=null;ptrF=null;});
 window.addEventListener('keydown',e=>{if(e.code==='Space'&&M&&M.type==='soak'&&!paused){hold=true;e.preventDefault();}});
 window.addEventListener('keyup',e=>{if(e.code==='Space')hold=false;});
@@ -1709,9 +1714,9 @@ const BOSS_N={10:6,20:7,30:8};
 const BOSS_REWARD={10:1500,20:4000,30:8000};
 const BOSS_START={10:60,20:55,30:50};
 const BOSS_INFO={
-  gourmet:{title:'第一章 Boss',intro:'荷塘最挑剔的美食家来了。他点了全套服务，每一项都要做到他满意。',lines:{win:'妙！这才叫手艺！我给你写一篇好评。',lose:'哼，我还是去别家吧。'}},
-  prince:{title:'第二章 Boss',intro:'青蛙王子亲自驾到。王室的脚可不能有一点闪失。',lines:{win:'赏！本王宣布这里是王室指定足浴店！',lose:'来人，摆驾回宫。'}},
-  onsen:{title:'第三章 Boss',intro:'温泉山庄的老板娘来"踢馆"了。同行最懂行，糊弄不过去。',lines:{win:'服了服了，以后我的客人都介绍给你。',lose:'还嫩着呢，再练练吧。'}}
+  gourmet:{title:'第一章 Boss',intro:'荷塘最挑剔的美食家来了。他点了全套服务，每一项都要做到他满意。',rule:'<b>挑刺</b>：每做完一项，他会拿放大镜圈出几处毛病，限时<b>点掉</b>补好。活儿做得越好，毛病越少。',lines:{win:'妙！这才叫手艺！我给你写一篇好评。',lose:'哼，我还是去别家吧。'}},
+  prince:{title:'第二章 Boss',intro:'青蛙王子亲自驾到。王室的脚可不能有一点闪失。',rule:'<b>宫廷规矩</b>：每项开始前要<b>长按行礼</b>；动作要轻，手划太快「力度」会涨满，王子会不高兴。',lines:{win:'赏！本王宣布这里是王室指定足浴店！',lose:'来人，摆驾回宫。'}},
+  onsen:{title:'第三章 Boss',intro:'温泉山庄的老板娘来"踢馆"了。同行最懂行，糊弄不过去。',rule:'<b>同行比拼</b>：她带来的徒弟阿汤在隔壁做同一套。每做完一项，<b>领先</b>加满意度、落后扣分；最后谁先做完全套很关键。',lines:{win:'服了服了，以后我的客人都介绍给你。',lose:'还嫩着呢，再练练吧。'}}
 };
 const TROPHY={gourmet:'spoon',prince:'crownT',onsen:'fan'};
 const isBossLv=lv=>!!BOSS_LV[lv];
@@ -1729,17 +1734,18 @@ function showBossIntro(){
   S.metVip=S.metVip||{};S.metVip[v.id]=1;save();
   open(`<div class="bosscard"><span class="bk">${bi.title} · 第 ${lv} 关</span><b>${v.n}</b><p>${bi.intro}</p></div>
   <ul class="news">
+    <li class="brule">${bi.rule}</li>
     <li>只有这一位客人，没有排队</li>
     <li>耐心条变成<b>满意度</b>，起点 ${start}${decoEff('boss')>0?`（地垫加成 +${Math.round(decoEff('boss')*100)}）`:'（买地垫能提高起点）'}</li>
     <li>每项做得越好，满意度涨得越多；出错、拖太久会掉</li>
-    <li>他中途会提要求，照做有奖励</li>
+    <li>中途还会临时提一个要求，照做有奖励</li>
     <li>全部做完时：满意度 60 以上 1 星，75 以上 2 星，90 以上 3 星；掉到 0 就失败</li>
   </ul>
   <div class="receipt"><div class="row"><span>通关奖励</span><span class="dots"></span><span>最高 ¥${BOSS_REWARD[lv]}</span></div><div class="row"><span>纪念品</span><span class="dots"></span><span>${DECOS.find(d=>d.id===TROPHY[v.id]).n}</span></div></div>
   <div class="btns"><button class="btn" id="openBtn">迎接 Boss</button></div>`);
   tone(196,196,.25,'sawtooth',.06);tone(185,185,.25,'sawtooth',.06,.25);tone(262,262,.5,'sawtooth',.07,.5);
-  $('openBtn').onclick=()=>{close();spawned=1;BQ=[];bossRun={lv,demands:0,spd:null};seat(bossSpec());
-    C.pat=start;C.boss=true;shake=.5;addFT('BOSS',180,70,'#ff7a5c',34,1);renderTicket();hud();};
+  $('openBtn').onclick=()=>{close();spawned=1;BQ=[];bossRun={lv,demands:0,spd:null,id:v.id,m:bmNew(v.id)};seat(bossSpec());
+    C.pat=start;C.boss=true;bmBegin();shake=.5;addFT('BOSS',180,70,'#ff7a5c',34,1);renderTicket();hud();};
 }
 const DEMANDS=[
   {id:'speed',text:'下一项 15 秒内做完！',say:['手脚麻利点，下一项给我 15 秒！','本王赶时间，下一项快点！']},
@@ -1758,24 +1764,26 @@ function bossAfterFinish(step,q){
   addFT(`满意度 ${g>=0?'+':''}${g}`,180,330,g>=0?'#f5c95c':'#ff8a80',18,1);
   renderTicket();
   const left=C.steps.length-C.si;
-  if(left>=1&&bossRun&&bossRun.demands<2&&(C.si===2||C.si===4)){
+  bmAfterFinish(step,q);
+  if(left>=1&&bossRun&&bossRun.demands<1&&C.si===3){
     bossRun.demands++;
-    const pool=DEMANDS.filter(x=>x.id!=='add'||cfg(S.day).unlock.some(s=>!C.steps.includes(s)));const dm=pick(pool);
+    const allow={gourmet:['add'],prince:['add'],onsen:['speed','add']}[bossRun.id]||['speed','perfect','add'];const pool=DEMANDS.filter(x=>allow.includes(x.id)&&(x.id!=='add'||cfg(S.day).unlock.some(s=>!C.steps.includes(s))));if(!pool.length)return;const dm=pick(pool);
     setTimeout(()=>{if(!C||!C.boss||C.done)return;
+      if(dm.id!=='add'&&C.si>=C.steps.length)return;
       if(dm.id==='add'){const U=cfg(S.day).unlock.filter(s=>!C.steps.includes(s)),s=pick(U);if(SVC[s])SVC[s].init(true);if(s==='paint')C.paint=genPaint(S.day);if(s==='trim')C.nails=genNails(S.day,true);if(s==='peel')buildPeel(cfg(S.day).patches);
-        const rem=C.steps.slice(C.si);C.steps=C.steps.slice(0,C.si).concat(ORDER.filter(x=>rem.includes(x)||x===s));C.added=s;say(`${pick(dm.say)}「${STEPS[s].n}」`);}
+        const cut=C.si+(M||bmBusy()?1:0),rem=C.steps.slice(cut);C.steps=C.steps.slice(0,cut).concat(ORDER.filter(x=>rem.includes(x)||x===s));C.added=s;say(`${pick(dm.say)}「${STEPS[s].n}」`);}
       else{C.demand={id:dm.id,step:C.steps[C.si],t0:performance.now()};say(pick(dm.say));}
       sfx.croak();R.sacT=.6;shake=.25;renderTicket();flashInstr('Boss 提要求了！看单子');addFT('Boss 要求',180,64,'#ff9a6b',22,1);},900);
   }
 }
 function bossEnd(win){
-  const lv=bossRun?bossRun.lv:S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),bi=BOSS_INFO[v.id],sat=Math.round(clamp(C.pat,0,100));
+  const lv=bossRun?bossRun.lv:S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),bi=BOSS_INFO[v.id],sat=Math.round(clamp(C.pat,0,100)),bms=bmSummary(bossRun&&bossRun.m);
   const stars=win?(sat>=90?3:sat>=75?2:sat>=60?1:0):0;
   bossRun=null;
   if(!stars){
     setFace('angry',99);sfx.bad();
     setTimeout(()=>{open(`<div class="bosscard lose"><span class="bk">挑战失败</span><b>${v.n}</b><p>「${bi.lines.lose}」</p></div>
-      <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div><div class="row"><span>1 星需要</span><span class="dots"></span><span>60</span></div></div>
+      <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div><div class="row"><span>1 星需要</span><span class="dots"></span><span>60</span></div>${bms}</div>
       <p class="muted">${sat>0?'项目都做完了，但满意度不够。每项做得更好、少出错，就能涨上去。':'满意度掉到 0 了。注意别拿错工具、别拖太久。'}${decoEff('boss')<.3?' 买地垫能提高满意度起点。':''}</p>
       <div class="btns"><button class="btn" id="retryBtn">再挑战一次</button><button class="btn ghost" id="bossShop">先去商店</button></div>`);
       $('retryBtn').onclick=startDay;$('bossShop').onclick=()=>{shopTab='deco';showShop();};},600);
@@ -1787,7 +1795,7 @@ function bossEnd(win){
   const T=DECOS.find(d=>d.id===trophy);
   setTimeout(()=>{open(`<div class="bosscard win"><span class="bk">Boss 搞定！</span><b>${v.n}</b><p>「${bi.lines.win}」</p></div>
     <div class="bigstars">${'★'.repeat(stars)}<span>${'★'.repeat(3-stars)}</span></div>
-    <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div><div class="row total"><span>通关奖励</span><span class="dots"></span><span>¥${reward}</span></div></div>
+    <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div>${bms}<div class="row total"><span>通关奖励</span><span class="dots"></span><span>¥${reward}</span></div></div>
     ${first?`<div class="unlockcard"><img src="${decoIcon(T)}" alt="" style="width:44px;height:44px"><div><b>获得纪念品：${T.n}</b><span>摆在店里的展示架上 · 小费 +5%</span></div></div>`:''}
     ${stars<3?'<p class="muted">满意度 90 以上就是 3 星，可以之后回来再挑战。</p>':''}
     <div class="btns"><button class="btn" id="shopBtn">${BOSS_LV[lv]&&lv<30?'进入下一章':'继续营业'}</button></div>`);
@@ -1795,6 +1803,162 @@ function bossEnd(win){
 }
 
 /* ---------- update ---------- */
+/* ---------- boss mechanics: 挑刺 / 宫廷规矩 / 同行比拼 ---------- */
+const BM_TAG={gourmet:'挑刺',prince:'宫廷规矩',onsen:'同行比拼'};
+const RIVAL_PAR={soak:9,scrub:11,peel:10,trim:9,massage:13,paint:10,mask:12,fish:15,wax:14,moxa:14,art:13};
+const RIVAL_GAP=2.5,BOWY=250,FORCE_LIM=1300;
+function bmNew(id){
+  if(id==='gourmet')return{k:'pick',phase:null,t:0,max:4,flaws:[],found:0,total:0,clean:0,rounds:0};
+  if(id==='prince')return{k:'court',bow:null,bowedFor:-1,bows:0,bowOk:0,force:0,warned:false,rude:0,cool:0,lastT:0};
+  if(id==='onsen')return{k:'race',rt:0,hers:0,lead:0,behind:0,end:null};
+  return{k:''};
+}
+const BMm=()=>bossRun&&bossRun.m||null;
+function bmSat(d,txt,x,y){C.pat=clamp(C.pat+d,0,100);addFT(`${txt} ${d>0?'+':d<0?'−':''}${d?Math.abs(d):''}`.trim(),x||180,y||300,d>0?'#b8f5c0':d<0?'#ff8a80':'#ffffff',16,1);renderTicket();}
+function bmBegin(){const m=BMm();if(!m)return;const cc=C;
+  if(m.k==='race')setTimeout(()=>{if(C===cc&&!C.done){say('阿汤，开始！让他们看看温泉山庄的手艺。');addFT('比拼开始！',180,110,'#ffd58a',22,1);sfx.croak();}},900);
+}
+function bmBusy(){const m=BMm();return !!m&&((m.k==='pick'&&!!m.phase)||(m.k==='court'&&!!m.bow));}
+function bmAfterFinish(step,q){
+  const m=BMm();if(!m)return;const cc=C;
+  if(m.k==='pick'){m.phase='wait';setTimeout(()=>{if(C===cc&&!C.done&&m.phase==='wait')bmPick(q);},450);}
+  if(m.k==='race'){
+    const hers=rivalDone(m);
+    if(C.si>hers){m.lead++;bmSat(3,'领先阿汤',180,330);}
+    else if(C.si<hers){m.behind++;bmSat(-2,'落后阿汤',180,330);}
+    else addFT('和阿汤打平',180,330,'#ffffff',16,1);
+    if(C.si>=C.steps.length&&!m.end){m.end='win';bmSat(6,'比阿汤先做完！',180,360);setTimeout(()=>{if(C===cc)say('……这速度，可以啊。');},700);}
+  }
+}
+function bmBlock(id){
+  const m=BMm();if(!m)return false;
+  if(m.k==='pick'&&m.phase){flashInstr(m.phase==='fix'?'呱德在挑刺，先把放大镜圈出来的地方点掉':'呱德正在检查，等一下');sfx.bad();return true;}
+  if(m.k==='court'&&!m.bow&&id!=='towel'&&id===C.steps[C.si]&&m.bowedFor!==C.si){bmBow(id);return true;}
+  if(m.k==='court'&&m.bow){if(!m.bow.pen){m.bow.pen=true;C.pat-=4;setFace('angry',1);say('放肆！还没行礼！');addFT('失礼 −4',180,300,'#ff8a80',16,1);renderTicket();}flashInstr('宫廷规矩：先长按中间的按钮行礼');sfx.bad();return true;}
+  return false;
+}
+function bmDown(fx,fy,sx,sy){
+  const m=BMm();if(!m)return false;
+  if(m.k==='pick'&&m.phase){
+    if(m.phase!=='fix')return true;
+    const f=m.flaws.find(f=>!f.ok&&Math.hypot(fx-f.x,fy-f.y)<f.r+16);
+    if(f){f.ok=true;m.found++;C.pat=Math.min(100,C.pat+1);sfx.perfect();addFT('补好了',f.x+FO.x,f.y+FO.y-20,'#f5c95c',15);
+      for(let i=0;i<7;i++)PS.push({k:'spark',x:f.x,y:f.y,vx:(Math.random()-.5)*120,vy:-50-Math.random()*60,life:.6,max:.6,r:3,c:pick(['#ffffff','#ffe9a8','#d8ccff'])});
+      if(m.flaws.every(f=>f.ok))bmPickEnd();}
+    else sfx.tap();
+    return true;}
+  if(m.k==='court'&&m.bow){if(Math.hypot(sx-180,sy-BOWY)<54){m.bow.holding=true;sfx.tap();}return true;}
+  return false;
+}
+function bmUp(){const m=BMm();if(m&&m.k==='court'&&m.bow)m.bow.holding=false;}
+function bmMove(d,ts){
+  const m=BMm();if(!m||m.k!=='court'||!M)return;
+  const dtm=(ts-m.lastT)/1000;m.lastT=ts;if(dtm<=0||dtm>.2||m.cool>0)return;
+  const spd=d/dtm;if(spd<=FORCE_LIM)return;
+  m.force+=(spd-FORCE_LIM)/FORCE_LIM*dtm*1.4;
+  if(m.force>=.7&&!m.warned){m.warned=true;addFT('轻一点……',180,90,'#ffd58a',18,1);say('嗯？轻一点。');}
+  if(m.force>=1){m.force=0;m.cool=1.2;m.rude++;C.pat-=6;setFace('angry',1.1);shake=.3;sfx.bad();say(pick(['放肆！轻一点！','本王的脚是你能这么使劲的吗？','粗鲁！']));addFT('用力过猛 −6',180,300,'#ff8a80',17,1);renderTicket();}
+}
+function rivalDone(m){let cum=0,n=0;for(const s of C.steps){cum+=(RIVAL_PAR[s]||11)+RIVAL_GAP;if(cum<=m.rt)n++;else break;}return n;}
+function rivalFrac(m){let cum=0;for(let i=0;i<C.steps.length;i++){const d=(RIVAL_PAR[C.steps[i]]||11)+RIVAL_GAP;if(m.rt<cum+d)return(i+(m.rt-cum)/d)/C.steps.length;cum+=d;}return 1;}
+function bmPick(q){
+  const m=BMm(),n=q>=.9?1:q>=.7?2:3;
+  m.flaws=footSpots(n,12,150,340).map(f=>({x:f.x,y:f.y,r:f.r,ok:false}));if(!m.flaws.length){m.phase=null;return;}
+  m.phase='scan';m.t=1.1;m.total+=m.flaws.length;m.rounds++;m.max=(4+m.flaws.length*.7)*(1+decoEff('qte'));
+  setInstr('呱德拿出放大镜……');say(pick(['且慢，让我仔细瞧瞧。','嗯……我再品一品。','别急，我检查一下。']));tone(660,880,.12,'triangle',.05);
+}
+function bmPickEnd(){
+  const m=BMm(),miss=m.flaws.filter(f=>!f.ok).length;m.phase=null;
+  if(!miss){m.clean++;bmSat(3,'无可挑剔',180,300);setFace('happy',1.2);say(pick(['嗯，这才像话。','可以，过关。','细节到位，不错。']));sfx.coin();}
+  else{bmSat(-4*miss,`漏了 ${miss} 处`,180,300);setFace('angry',1.2);say(pick(['这都看不出来？','啧，粗心。','细节！细节懂不懂？']));}
+  if(C.si<C.steps.length)setInstr('挑刺结束，选下一件工具');else{setInstr('全部做完，用毛巾擦干结账');hintTool('towel');}
+}
+function bmBow(tool){
+  const m=BMm();if(!m||m.bow)return;
+  m.bow={tool,t:4.5*(1+decoEff('qte')),max:4.5*(1+decoEff('qte')),hf:0,holding:false,pen:false};m.bows++;
+  say(pick(['且慢，宫廷规矩，先行礼。','嗯哼？动手之前不先行礼？','礼不可废。']));flashInstr(`开始「${STEPS[tool].n}」之前，先长按中间的按钮行礼`);
+  tone(523,523,.1,'triangle',.06);tone(659,659,.15,'triangle',.06,.1);
+}
+function bmUpdate(dt,t){
+  const m=BMm();if(!m)return;
+  if(m.k==='pick'&&m.phase&&m.phase!=='wait'){
+    m.t-=dt;
+    if(m.phase==='scan'&&m.t<=0){m.phase='fix';m.t=m.max;flashInstr(`点掉放大镜圈出来的 ${m.flaws.length} 处毛病！`);say(pick(['这里，还有这里，不够讲究。','啧，这几处没弄好。','看见没？这儿。']));sfx.bad();}
+    else if(m.phase==='fix'&&m.t<=0)bmPickEnd();
+  }
+  if(m.k==='court'){
+    m.cool=Math.max(0,m.cool-dt);m.force=Math.max(0,m.force-dt*.45);if(m.force<.4)m.warned=false;
+    const b=m.bow;
+    if(b){b.t-=dt;if(b.holding)b.hf+=dt/.8;else b.hf=Math.max(0,b.hf-dt*.8);
+      if(b.hf>=1){m.bow=null;m.bowOk++;m.bowedFor=C.si;bmSat(2,'礼数周到',180,300);say(pick(['平身。','嗯，懂规矩。','免礼，开始吧。']));setFace('happy',1);sfx.coin();bmUp();hold=false;startMini(b.tool);}
+      else if(b.t<=0){m.bow=null;m.bowedFor=C.si;bmSat(-8,'失礼',180,300);setFace('angry',1.2);say('放肆！……罢了，开始吧。');sfx.bad();shake=.3;startMini(b.tool);}}
+  }
+  if(m.k==='race'&&!m.end){
+    m.rt+=dt;const h=rivalDone(m);
+    if(h>m.hers){m.hers=h;const s=C.steps[h-1];addFT(`阿汤做完了「${STEPS[s]?STEPS[s].n:''}」`,180,52,'#ffd58a',14,1);tone(392,523,.08,'square',.03);}
+    if(m.hers>=C.steps.length&&C.si<C.steps.length){m.end='lose';bmSat(-6,'阿汤先做完了',180,300);say('瞧见没？阿汤已经做完全套了。');setFace('angry',1);sfx.bad();}
+  }
+}
+function drawMagnifier(c,x,y,s){
+  c.save();c.translate(x,y);c.rotate(-.6);
+  c.fillStyle='#6b4a2a';c.strokeStyle='#2b1a10';c.lineWidth=2;c.beginPath();c.roundRect(-4*s,14*s,8*s,22*s,3*s);c.fill();c.stroke();
+  c.fillStyle='rgba(220,240,255,.35)';c.strokeStyle='#d8b25a';c.lineWidth=4*s;c.beginPath();c.arc(0,0,14*s,0,TAU);c.fill();c.stroke();
+  c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=2*s;c.beginPath();c.arc(0,0,9*s,-2.4,-1.6);c.stroke();
+  c.restore();
+}
+function bmDrawFoot(c,t){
+  const m=BMm();if(!m)return;
+  if(m.k==='pick'&&m.phase&&m.phase!=='wait'){
+    if(m.phase==='scan'){const k=1-m.t/1.1;drawMagnifier(c,110+Math.sin(k*TAU*1.2)*60+40*k,170+k*150,1.1);}
+    else for(const f of m.flaws){if(f.ok)continue;const pr=f.r+6+Math.sin(t*8+f.x)*2;
+      c.save();c.fillStyle='rgba(255,90,80,.16)';circ(c,f.x,f.y,pr);c.strokeStyle='#ff6b5c';c.lineWidth=2.5;c.setLineDash([4,3]);c.beginPath();c.arc(f.x,f.y,pr,0,TAU);c.stroke();c.setLineDash([]);
+      c.font=`15px ${DISPLAY}`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(40,20,10,.85)';c.strokeText('!',f.x,f.y+5);c.fillStyle='#fff';c.fillText('!',f.x,f.y+5);c.restore();}
+  }
+}
+function bmBanner(c,txt,k,col){
+  c.save();c.fillStyle='rgba(58,26,20,.88)';c.beginPath();c.roundRect(20,8,320,26,13);c.fill();
+  if(k!=null){c.fillStyle=k<.35?'#ff7a6a':'#f5c95c';c.beginPath();c.roundRect(24,30,312*clamp(k,0,1),3,1.5);c.fill();}
+  c.font=`14px ${DISPLAY}`;c.textAlign='center';c.fillStyle=col||'#ffd58a';c.fillText(txt,180,26);c.restore();
+}
+function bmDrawUI(c,t){
+  const m=BMm();if(!m||C.done)return;
+  if(m.k==='pick'&&m.phase&&m.phase!=='wait'){
+    if(m.phase==='scan')bmBanner(c,'呱德挑刺 · 他在找毛病……',null);
+    else bmBanner(c,`呱德挑刺 · 点掉红圈（还剩 ${m.flaws.filter(f=>!f.ok).length} 处）`,m.t/m.max);
+  }
+  if(m.k==='court'){
+    const b=m.bow;
+    if(b){bmBanner(c,`宫廷规矩 · 做「${STEPS[b.tool].n}」前先行礼`,b.t/b.max);
+      const pr=44+Math.sin(t*5)*2;c.save();
+      c.fillStyle='rgba(58,26,20,.78)';circ(c,180,BOWY,pr);c.strokeStyle='#f5c95c';c.lineWidth=3;c.beginPath();c.arc(180,BOWY,pr,0,TAU);c.stroke();
+      if(b.hf>0){c.strokeStyle='#7ee08a';c.lineWidth=7;c.beginPath();c.arc(180,BOWY,pr-6,-Math.PI/2,-Math.PI/2+TAU*Math.min(1,b.hf));c.stroke();}
+      c.fillStyle='#f5c95c';c.strokeStyle='#8a5a12';c.lineWidth=1.5;c.beginPath();c.moveTo(166,BOWY-6);c.lineTo(166,BOWY-22);c.lineTo(173,BOWY-14);c.lineTo(180,BOWY-24);c.lineTo(187,BOWY-14);c.lineTo(194,BOWY-22);c.lineTo(194,BOWY-6);c.closePath();c.fill();c.stroke();
+      c.font=`15px ${DISPLAY}`;c.textAlign='center';c.fillStyle='#fff';c.fillText(b.holding?'行礼中…':'长按行礼',180,BOWY+16);c.restore();}
+    if(M||m.force>.02){const x=338,y0=140,h=150,f=clamp(m.force,0,1);c.save();
+      c.fillStyle='rgba(30,20,14,.65)';c.beginPath();c.roundRect(x-9,y0-4,18,h+8,9);c.fill();
+      c.fillStyle=f>.7?'#ff6b5c':f>.4?'#f5c95c':'#7ee08a';c.beginPath();c.roundRect(x-5,y0+h*(1-f),10,h*f+.01,5);c.fill();
+      c.font=`12px ${DISPLAY}`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(30,20,14,.85)';c.strokeText('力度',x,y0+h+18);c.fillStyle='#fff';c.fillText('力度',x,y0+h+18);c.restore();}
+  }
+  if(m.k==='race'){
+    const N=C.steps.length,mine=Math.min(1,(C.si+(M?progV:0))/N),hers=m.end==='lose'?1:rivalFrac(m);
+    c.save();c.fillStyle='rgba(30,40,44,.82)';c.beginPath();c.roundRect(20,6,320,34,12);c.fill();
+    c.font=`12px ${DISPLAY}`;c.textAlign='left';
+    for(const [i,lab,v,col] of [[0,'你',mine,'#7ee08a'],[1,'阿汤',hers,'#ff9a6b']]){const y=12+i*14;
+      c.fillStyle='#fff';c.fillText(lab,28,y+9);c.fillStyle='rgba(255,255,255,.18)';c.beginPath();c.roundRect(64,y+2,264,8,4);c.fill();
+      c.fillStyle=col;c.beginPath();c.roundRect(64,y+2,Math.max(8,264*v),8,4);c.fill();}
+    c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=1;for(let i=1;i<N;i++){const x=64+264*i/N;c.beginPath();c.moveTo(x,13);c.lineTo(x,38);c.stroke();}
+    c.restore();
+  }
+}
+function bmSummary(m){
+  if(!m)return'';
+  const row=(a,b)=>`<div class="row"><span>${a}</span><span class="dots"></span><span>${b}</span></div>`;
+  if(m.k==='pick')return row('挑刺补好',`${m.found}/${m.total} 处`)+row('无可挑剔',`${m.clean}/${m.rounds} 次`);
+  if(m.k==='court')return row('行礼',`${m.bowOk}/${m.bows} 次`)+row('用力过猛',`${m.rude} 次`);
+  if(m.k==='race')return row('领先阿汤',`${m.lead} 项`)+row('谁先做完',m.end==='win'?'你':m.end==='lose'?'阿汤':'—');
+  return'';
+}
+
 function update(dt,t){
   if(!C)return;
   react(dt,t);
@@ -1810,9 +1974,10 @@ function update(dt,t){
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
-    if(!DBG.god&&!TUT.on)C.pat-=dt*K.decay*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1)*(C.boss?.35:1);
+    if(!DBG.god&&!TUT.on&&!(C.boss&&bmBusy()))C.pat-=dt*K.decay*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1)*(C.boss?(S.day>=30?.3:.35):1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
-    if(!TUT.on&&!Q&&!chatOpen&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
+    if(C.boss&&!C.done)bmUpdate(dt,t);
+    if(!TUT.on&&!Q&&!chatOpen&&!(C.boss&&bmBusy())&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
     if(Q){if(!TUT.on)Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
     arriveT-=dt;if(arriveT<=0&&spawned<dayCount()&&BQ.length<3){BQ.push(newSpec());spawned++;arriveT=K.arrive*(.8+Math.random()*.4);renderBench();sfx.croak();}
     for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];if(!DBG.god&&!TUT.on)sp.wpat-=dt*100/(K.wait*(1+decoEff('wait')));if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
@@ -2120,8 +2285,10 @@ function draw(t){
   if(M&&SVC[M.type])SVC[M.type].draw(ctx,t);
   if(M&&M.type==='peel'&&ptrF){if(peeling)drawCurl(ctx,M.curl.x,M.curl.y,M.curl.s,0);drawBlade(ctx,ptrF[0],ptrF[1]);}
   if(M&&M.type==='scrub'&&ptrF){const r=15+S.up.brush*5;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(ptrF[0],ptrF[1],r,0,TAU);ctx.stroke();ctx.setLineDash([]);}
+  if(C.boss)bmDrawFoot(ctx,t);
   drawParticles(ctx,false);
   ctx.restore();
+  if(C.boss)bmDrawUI(ctx,t);
   if(M&&M.type==='soak')drawThermo(ctx);
   if(M&&M.type==='scrub'&&C.tickles.length)drawTickleMeter(ctx);
   if(Q)drawQTE(ctx,t);
