@@ -104,6 +104,9 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .bench{display:flex;align-items:center;gap:6px;background:rgba(22,58,53,.6);border-radius:10px;padding:4px 8px;min-height:44px;overflow:hidden}
 .bl{font-size:11px;color:var(--paper);opacity:.8;writing-mode:vertical-rl;letter-spacing:.2em;flex:none}
 .be{font-size:12px;color:var(--paper);opacity:.6}
+.assist{background:#e7f5e4;border:1.5px solid var(--good);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.5;color:var(--ink)}
+.assist b{color:#2e7d3a}
+.tg.assist{background:#e7f5e4;color:#2e7d3a;border:1px solid #9fd29a}
 .bn{margin-left:auto;font-size:11.5px;color:var(--gold);flex:none;white-space:nowrap}
 .dclock{margin-left:auto;flex:none;display:flex;align-items:center;gap:5px;background:rgba(10,24,22,.45);border-radius:8px;padding:3px 7px 3px 4px;color:var(--paper);line-height:1.15}
 .bn+.dclock{margin-left:6px}
@@ -638,7 +641,20 @@ function cfg(d){
   };
 }
 const goalFor=d=>Math.round(cfg(d).count*(38+d*6)*(d<=2?1:d<=10?1.25:1.3)/10)*10;
-const starGoals=g=>[Math.round(g*.4/10)*10,Math.round(g*.7/10)*10,g];
+/* 店长帮忙：同一关连续没过 2 次起，客人更有耐心、1 星目标降低（3 星不变） */
+let assistLv=0;
+const failCount=lv=>(S.fails&&S.fails[lv])||0;
+const assistFor=f=>Math.min(3,Math.max(0,f-1));
+function calcAssist(){assistLv=(TUT.on||DBG.solo)?0:assistFor(failCount(S.day));}
+function noteFail(lv){if(DBG.solo||TUT.on)return;S.fails=S.fails||{};S.fails[lv]=(S.fails[lv]||0)+1;save();}
+function clearFail(lv){if(S.fails&&S.fails[lv]){delete S.fails[lv];save();}}
+function assistNoteHtml(lv){
+  const f=failCount(lv),next=assistFor(f);
+  if(next>assistLv)return`<div class="assist"><b>店长看你辛苦了</b><span>下一次来帮忙：客人更有耐心，排队能多等一会儿，1 星目标降低。</span></div>`;
+  if(f===1)return`<p class="muted">再没过一次，店长就会来帮忙。</p>`;
+  return'';
+}
+const starGoals=g=>[Math.round(g*(.4-.05*assistLv)/10)*10,Math.round(g*(.7-.03*assistLv)/10)*10,g];
 const totalStars=()=>Object.values(S.best||{}).reduce((a,b)=>a+b,0);
 let R={jy:0,jv:0,tick:0,melt:0,sac:0,sacT:0,arm:0,fly:null,idle:0,land:0};
 let C=null,M=null,face='neutral',faceT=0,entry=0,bucket=0,shake=0,paused=true,hold=false,scrubbing=false,peeling=false,lastP=[0,0],ptr=null;
@@ -845,7 +861,7 @@ function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offset
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
   $('patLbl').textContent=C.boss?'满意度':'耐心';$('patWrap').classList.toggle('boss',!!C.boss);
-  const tg=(C.boss?`<span class="tg boss">BOSS${bossRun&&BM_TAG[bossRun.id]?' · '+BM_TAG[bossRun.id]:''} · 满意度 60/75/90 = 1/2/3 星</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
+  const tg=(assistLv&&!DBG.solo?'<span class="tg assist">店长帮忙中</span>':'')+(C.boss?`<span class="tg boss">BOSS${bossRun&&BM_TAG[bossRun.id]?' · '+BM_TAG[bossRun.id]:''} · 满意度 60/75/90 = 1/2/3 星</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
   $('tags').innerHTML=tg;$('tags').hidden=!tg;
   $('chips').innerHTML=C.steps.map((s,i)=>{
     const cls=C.q[s]!=null?'done':(i===C.si?'cur':'');
@@ -1185,6 +1201,7 @@ function showDayEnd(){
   const g=starGoals(dayGoal),stars=g.filter(x=>dayEarn>=x).length,avg=dayStars.length?(dayStars.reduce((a,b)=>a+b,0)/dayStars.length):0;
   const lv=S.day;
   if(!stars){
+    noteFail(lv);
     open(`<h2>打烊了 · 第 ${lv} 关没过</h2>
     <div class="bigstars dim">☆☆☆</div>
     <div class="receipt">
@@ -1193,11 +1210,12 @@ function showDayEnd(){
       <div class="row"><span>服务客人</span><span class="dots"></span><span>${dayStars.length} 位${missed?` · 走掉 ${missed} 位`:''}</span></div>
     </div>
     <p>${missed?'排队的客人等太久走了，做快一点，别让长凳坐满。':'再试一次，做得好的客人给的小费更多。'}</p>
+    ${assistNoteHtml(lv)}
     <div class="btns"><button class="btn" id="retryBtn">再来一次</button></div>`);
     $('retryBtn').onclick=startDay;return;
   }
   const bonus=stars===3?Math.round(dayEarn*.25):stars===2?Math.round(dayEarn*.1):0;
-  S.coins+=bonus;S.best=S.best||{};const first=!S.best[lv];S.best[lv]=Math.max(S.best[lv]||0,stars);
+  clearFail(lv);S.coins+=bonus;S.best=S.best||{};const first=!S.best[lv];S.best[lv]=Math.max(S.best[lv]||0,stars);
   S.day++;save();hud();
   const nextNew=ORDER.find(s=>UNLOCK[s]===S.day);
   open(`<h2>打烊啦 · 第 ${lv} 关完成</h2>
@@ -1236,13 +1254,14 @@ function showShop(){
     save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=()=>{$('panel').onclick=null;startDay();};
 }
-function startDay(){vipSpawned=false;setChapter();{const ch=chOf(S.day);S.chSeen=S.chSeen||{};if(ch>1&&!S.chSeen[ch]&&!DBG.solo){S.chSeen[ch]=1;save();DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;resetDay();dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;open(chapterCardHtml(ch)+'<div class="btns"><button class="btn" id="chBtn">进店</button></div>');tone(523,523,.15,'triangle',.08);tone(659,659,.15,'triangle',.08,.15);tone(784,784,.15,'triangle',.08,.3);tone(1047,1047,.4,'triangle',.08,.45);$('chBtn').onclick=showLevelIntro;return;}}DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;resetDay();dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
+function startDay(){vipSpawned=false;calcAssist();setChapter();{const ch=chOf(S.day);S.chSeen=S.chSeen||{};if(ch>1&&!S.chSeen[ch]&&!DBG.solo){S.chSeen[ch]=1;save();DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;resetDay();dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;open(chapterCardHtml(ch)+'<div class="btns"><button class="btn" id="chBtn">进店</button></div>');tone(523,523,.15,'triangle',.08);tone(659,659,.15,'triangle',.08,.15);tone(784,784,.15,'triangle',.08,.3);tone(1047,1047,.4,'triangle',.08,.45);$('chBtn').onclick=showLevelIntro;return;}}DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;resetDay();dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
 function showLevelIntro(){
   if(isBossLv(S.day)&&!DBG.solo){showBossIntro();return;}
   const lv=S.day,g=starGoals(dayGoal),neu=ORDER.find(s=>UNLOCK[s]===lv&&lv>1);
   const news=(NEWS[lv]||(lv>13?['客人更多、更急，泥更硬、按摩更快']:[])).filter(x=>!neu||!x.startsWith('解锁'));
   open(`<h2>第 ${lv} 关 <small class="chtag">${CHAPTERS.at(chOf(lv)-1).name}</small></h2>
   ${neu?`<div class="unlockcard new"><svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[neu]}</svg><div><b>新项目：${STEPS[neu].n}</b><span>${UNLOCK_HOW[neu]}</span></div></div>`:''}
+  ${assistLv?`<div class="assist"><b>店长来帮忙了</b><span>客人耐心掉得慢 ${12*assistLv}%，排队能多等 ${15*assistLv}%，1 星目标降到 ¥${g.at(0)}。3 星目标不变。</span></div>`:''}
   <div class="receipt">
     <div class="row"><span>今天的客人</span><span class="dots"></span><span>${dayCount()} 位</span></div>
     ${g.map((x,i)=>`<div class="row"><span>${'★'.repeat(i+1)}</span><span class="dots"></span><span>¥${x}</span></div>`).join('')}
@@ -1818,11 +1837,12 @@ function bossSpec(){
   return sp;
 }
 function showBossIntro(){
-  const lv=S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),bi=BOSS_INFO[v.id],start=Math.round(BOSS_START[lv]+decoEff('boss')*100);
+  const lv=S.day,v=VIPS.find(x=>x.id===BOSS_LV[lv]),bi=BOSS_INFO[v.id],start=Math.round(BOSS_START[lv]+decoEff('boss')*100+5*assistLv);
   S.metVip=S.metVip||{};S.metVip[v.id]=1;save();
   open(`<div class="bosscard"><span class="bk">${bi.title} · 第 ${lv} 关</span><b>${v.n}</b><p>${bi.intro}</p></div>
   <ul class="news">
     <li class="brule">${bi.rule}</li>
+    ${assistLv?`<li class="brule" style="background:#e7f5e4;box-shadow:inset 0 0 0 1.5px var(--good)"><b>店长来帮忙了</b>：满意度起点 +${5*assistLv}，掉得慢 ${12*assistLv}%</li>`:''}
     <li>只有这一位客人，没有排队</li>
     <li>耐心条变成<b>满意度</b>，起点 ${start}${decoEff('boss')>0?`（地垫加成 +${Math.round(decoEff('boss')*100)}）`:'（买地垫能提高起点）'}</li>
     <li>每项做得越好，满意度涨得越多；出错、拖太久会掉</li>
@@ -1869,15 +1889,17 @@ function bossEnd(win){
   const stars=win?(sat>=90?3:sat>=75?2:sat>=60?1:0):0;
   bossRun=null;
   if(!stars){
+    noteFail(lv);
     setFace('angry',99);sfx.bad();
     setTimeout(()=>{open(`<div class="bosscard lose"><span class="bk">挑战失败</span><b>${v.n}</b><p>「${bi.lines.lose}」</p></div>
       <div class="receipt"><div class="row"><span>最后满意度</span><span class="dots"></span><span>${sat}</span></div><div class="row"><span>1 星需要</span><span class="dots"></span><span>60</span></div>${bms}</div>
       <p class="muted">${sat>0?'项目都做完了，但满意度不够。每项做得更好、少出错，就能涨上去。':'满意度掉到 0 了。注意别拿错工具、别拖太久。'}${decoEff('boss')<.3?' 买地垫能提高满意度起点。':''}</p>
+      ${assistNoteHtml(lv)}
       <div class="btns"><button class="btn" id="retryBtn">再挑战一次</button><button class="btn ghost" id="bossShop">先去商店</button></div>`);
       $('retryBtn').onclick=startDay;$('bossShop').onclick=()=>{shopTab='deco';showShop();};},600);
     return;}
   const reward=Math.round(BOSS_REWARD[lv]*(.5+stars/6)/10)*10,trophy=TROPHY[v.id],first=!S.deco[trophy];
-  S.coins+=reward;S.deco[trophy]=1;S.best=S.best||{};S.best[lv]=Math.max(S.best[lv]||0,stars);S.day++;S.served++;save();hud();popCoin();
+  clearFail(lv);S.coins+=reward;S.deco[trophy]=1;S.best=S.best||{};S.best[lv]=Math.max(S.best[lv]||0,stars);S.day++;S.served++;save();hud();popCoin();
   setFace('bliss',99);
   tone(523,523,.15,'triangle',.09);tone(659,659,.15,'triangle',.09,.15);tone(784,784,.15,'triangle',.09,.3);tone(1047,1047,.5,'triangle',.09,.45);
   const T=DECOS.find(d=>d.id===trophy);
@@ -2063,13 +2085,13 @@ function update(dt,t){
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
-    if(!DBG.god&&!TUT.on&&!(C.boss&&bmBusy()))C.pat-=dt*(C.boss?K.bossDecay:K.decay)*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1);
+    if(!DBG.god&&!TUT.on&&!(C.boss&&bmBusy()))C.pat-=dt*(C.boss?K.bossDecay:K.decay)*(1-.12*assistLv)*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
     if(C.boss&&!C.done)bmUpdate(dt,t);
     if(!TUT.on&&!Q&&!chatOpen&&!(C.boss&&bmBusy())&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
     if(Q){if(!TUT.on)Q.t-=dt;if(Q.holding){Q.hf+=dt/1.1;if(Q.hf>=1)qteEnd(true);}if(Q&&Q.t<=0)qteEnd(false);}
     arriveT-=dt;if(arriveT<=0&&spawned<dayCount()&&BQ.length<3){BQ.push(newSpec());spawned++;arriveT=K.arrive*(.8+Math.random()*.4);renderBench();sfx.croak();}
-    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];if(!DBG.god&&!TUT.on)sp.wpat-=dt*100/(K.wait*(1+decoEff('wait')));if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
+    for(let i=BQ.length-1;i>=0;i--){const sp=BQ[i];if(!DBG.god&&!TUT.on)sp.wpat-=dt*100/(K.wait*(1+decoEff('wait')+.15*assistLv));if(sp.wpat<=0){BQ.splice(i,1);missed++;sfx.bad();addFT(`${sp.name}等太久走了`,180,44,'#ff9a8a',15,1);renderBench();}}
     updateBenchBars();
     if(!TUT.on&&C.has('chatty')&&!chatOpen&&!Q&&C.chats<2){C.chatT-=dt;if(C.chatT<=0)openChat();}
     if(chatOpen){chatOpen.t-=dt;const tm=$('chatTm');if(tm)tm.style.width=(chatOpen.t/chatOpen.max*100)+'%';if(chatOpen.t<=0)answerChat(-1);}
