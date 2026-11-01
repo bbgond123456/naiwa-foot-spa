@@ -18,6 +18,7 @@ window.__t={
   get FO(){return FO},get ptrF(){return ptrF},get sc(){return [sc,ox,oy,dpr]},
   DBG,TUT,STEPS,UNLOCK,ORDER,UPG,DECOS,seatSolo,useTool,finish,qteHit,qteEnd,answerChat,bmMove,bmDown,
   goalFor,cfg,toolLv,clawMid,HERBS,COLORS,TIPS,soakZone,showShop,startDay,set shopTab(v){shopTab=v},
+  set dayP(v){dayP=v;dayT=v},get dayP(){return dayP},
   noDraw:false
 };
 """

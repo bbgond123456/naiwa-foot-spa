@@ -105,6 +105,21 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .bl{font-size:11px;color:var(--paper);opacity:.8;writing-mode:vertical-rl;letter-spacing:.2em;flex:none}
 .be{font-size:12px;color:var(--paper);opacity:.6}
 .bn{margin-left:auto;font-size:11.5px;color:var(--gold);flex:none;white-space:nowrap}
+.dclock{margin-left:auto;flex:none;display:flex;align-items:center;gap:5px;background:rgba(10,24,22,.45);border-radius:8px;padding:3px 7px 3px 4px;color:var(--paper);line-height:1.15}
+.bn+.dclock{margin-left:6px}
+.dclock svg{width:22px;height:22px;flex:none}
+.dclock b{display:block;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dclock small{display:block;font-size:10.5px;opacity:.8;white-space:nowrap}
+.dclock.late small{color:var(--gold);opacity:1}
+#app{isolation:isolate}
+.sky{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.sky i{position:absolute;display:block}
+.sky .grade{inset:0;background:var(--sky-c,#fff);opacity:var(--sky-o,0);mix-blend-mode:soft-light}
+.sky .dusk{inset:0;background:linear-gradient(180deg,#2b2f6e,#5a3a6e 55%,#c0603e);opacity:var(--sky-d,0);mix-blend-mode:multiply}
+.sky .beam{top:-25%;height:150%;width:58%;left:var(--beam-x,20%);transform:rotate(var(--beam-r,20deg));transform-origin:50% 0;
+  background:linear-gradient(90deg,transparent 0,rgba(var(--beam-c,255,240,200),.9) 12%,rgba(var(--beam-c,255,240,200),.9) 43%,transparent 47%,transparent 53%,rgba(var(--beam-c,255,240,200),.9) 57%,rgba(var(--beam-c,255,240,200),.9) 88%,transparent 100%);
+  opacity:var(--beam-o,0);mix-blend-mode:soft-light;filter:blur(10px)}
+@media (prefers-reduced-motion: no-preference){.sky .beam,.sky .grade,.sky .dusk{transition:opacity 1.2s,left 1.2s,transform 1.2s,background-color 1.2s}}
 .bs{display:flex;align-items:center;gap:4px;background:var(--paper);border-radius:8px;padding:3px 6px 3px 3px;min-width:0;animation:bin .35s}
 @keyframes bin{from{transform:translateY(-8px);opacity:0}}
 .bs>svg{width:30px;height:25px;flex:none}
@@ -280,6 +295,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 </head>
 <body>
 <div id="app">
+  <div class="sky" id="sky" aria-hidden="true"><i class="grade"></i><i class="beam"></i><i class="dusk"></i></div>
   <header class="top">
     <div class="sign" id="signText">奶蛙足道</div>
     <div class="stats">
@@ -680,6 +696,7 @@ function makeSpec(){
     lvl:d===1?.45+Math.random()*.5:Math.min(1,.6+Math.random()*.4+d*.015),wpat:100};
 }
 function seat(sp){
+  if(!TUT.on&&!DBG.solo&&!isBossLv(S.day)&&dayCount()>1&&doneCount+missed+1>=dayCount()&&!lastCallSaid){lastCallSaid=true;setTimeout(()=>{if(C&&!C.done&&!paused){flashInstr('最后一位客人，做完就打烊');addFT('最后一位客人',180,96,'#ffd58a',20,1);}},1400);}
   const d=S.day,K=cfg(d),look=sp.look,feat=look.feat,steps=sp.steps.slice();
   C={name:sp.name,look,feat,pal:pick(PALS),kind:KINDS[sp.kid],acc:sp.acc,chain:sp.chain,eyeK:sp.eyeK,tag:sp.tag,
     steps,traits:sp.traits.slice(),pat:Math.round(70+sp.wpat*.3),waited:sp.wpat<70,q:{},si:0,done:false,evented:false,added:null,
@@ -711,9 +728,53 @@ function nextCustomer(){
 }
 function lookColor(l){if(!l.pal)return'#f6d564';const c=hsv2rgb(l.pal.h,Math.min(1,.62*l.pal.s),Math.min(1,.97*l.pal.v));return`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;}
 function avatar(l){const c=lookColor(l);return`<svg viewBox="0 0 34 28" aria-hidden="true"><ellipse cx="17" cy="18" rx="14" ry="9" fill="${c}" stroke="#6b3f12" stroke-width="1.5"/><circle cx="9" cy="10" r="6" fill="${c}" stroke="#6b3f12" stroke-width="1.5"/><circle cx="25" cy="10" r="6" fill="${c}" stroke="#6b3f12" stroke-width="1.5"/><circle cx="9" cy="10" r="3.6" fill="#cbe6c0"/><circle cx="25" cy="10" r="3.6" fill="#cbe6c0"/><circle cx="9" cy="10.5" r="1.8" fill="#4d3420"/><circle cx="25" cy="10.5" r="1.8" fill="#4d3420"/><path d="M12 20q5 3 10 0" stroke="#6b3f12" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>`;}
+/* ---------- 营业时间：9:00 开门，按服务进度走到 18:00 打烊 ---------- */
+let dayP=0,dayT=0,clockTxt='',skyKey='',lastCallSaid=false;
+const OPEN_H=9,CLOSE_H=18;
+const SKY=[ // h, 色调, 色调强度, 傍晚暗度, 光束位置, 光束角度, 光束强度, 光束颜色
+  [9,  '#ffe9b0',.55,0,  -6, 28,.85,'255,236,190'],
+  [11, '#fff6dc',.35,0,  14, 16,.75,'255,246,220'],
+  [13, '#ffffff',.2, 0,  32,  2,.55,'255,255,240'],
+  [15, '#ffd27a',.55,0,  50,-14,.8, '255,214,140'],
+  [16.5,'#ff9a5c',.7,.12,62,-26,.75,'255,170,110'],
+  [17.4,'#ff7a6a',.6,.38,72,-34,.35,'255,140,120'],
+  [18, '#7a8cff',.4,.62,80,-38,0,  '200,200,255']
+];
+function skyAt(h){
+  let i=0;while(i<SKY.length-2&&h>SKY[i+1][0])i++;
+  const a=SKY[i],b=SKY[i+1],k=clamp((h-a[0])/(b[0]-a[0]),0,1),L=(x,y)=>x+(y-x)*k;
+  const ca=hex2rgb(a[1]),cb=hex2rgb(b[1]),ba=a[7].split(',').map(Number),bb=b[7].split(',').map(Number);
+  return{c:`rgb(${[0,1,2].map(j=>Math.round(L(ca[j],cb[j]))).join(',')})`,o:L(a[2],b[2]),d:L(a[3],b[3]),x:L(a[4],b[4]),r:L(a[5],b[5]),bo:L(a[6],b[6]),bc:[0,1,2].map(j=>Math.round(L(ba[j],bb[j]))).join(',')};
+}
+function hex2rgb(h){const n=parseInt(h.slice(1),16);return[n>>16&255,n>>8&255,n&255];}
+function dayTarget(){
+  if(TUT.on)return .05;
+  const N=Math.max(1,dayCount()),done=doneCount+missed;
+  const cur=C&&!C.done&&C.steps.length?Math.min(1,C.si/C.steps.length)*.9:C&&C.done?1:0;
+  return clamp((done+cur)/N,0,1);
+}
+const hourOf=p=>OPEN_H+(CLOSE_H-OPEN_H)*p;
+function fmtClock(h){const hh=Math.floor(h),mm=Math.floor((h-hh)*6)*10;const ap=hh<12?'上午':hh<13?'中午':hh<18?'下午':'晚上';return`${ap} ${hh>12?hh-12:hh}:${String(mm).padStart(2,'0')}`;}
+function clockHtml(){
+  const h=hourOf(dayP),left=CLOSE_H-h,night=h>=17.2;
+  const icon=night?'<svg viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 13.6A7 7 0 0 1 15.5 3.5z" fill="#ffe08a" stroke="#c99a2e" stroke-width="1.2"/></svg>'
+    :`<svg viewBox="0 0 24 24"><g stroke="${h>=15.5?'#ff9a5c':'#f5c95c'}" stroke-width="1.8" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180;return`<path d="M${12+Math.cos(r)*8} ${12+Math.sin(r)*8}L${12+Math.cos(r)*10.5} ${12+Math.sin(r)*10.5}"/>`;}).join('')}</g><circle cx="12" cy="12" r="5" fill="${h>=15.5?'#ffb070':'#ffd75e'}"/></svg>`;
+  const sub=dayP>=.999?'打烊啦':left<=1?'快打烊了':`约 ${Math.ceil(left)} 小时后打烊`;
+  return{html:`${icon}<div><b>${fmtClock(h)}</b><small>${sub}</small></div>`,late:left<=1.5};
+}
+function updateDay(dt){
+  dayT=Math.max(dayT,dayTarget());
+  dayP+=(dayT-dayP)*Math.min(1,dt*1.2);if(Math.abs(dayT-dayP)<.0005)dayP=dayT;
+  const ck=clockHtml(),el=$('dclock');
+  if(el&&ck.html!==clockTxt){clockTxt=ck.html;el.innerHTML=ck.html;el.classList.toggle('late',ck.late);}
+  const sk=skyAt(hourOf(dayP)),key=[sk.c,sk.o.toFixed(2),sk.d.toFixed(2),sk.x.toFixed(0),sk.r.toFixed(0),sk.bo.toFixed(2)].join('|');
+  if(key!==skyKey){skyKey=key;const st=$('sky').style;st.setProperty('--sky-c',sk.c);st.setProperty('--sky-o',sk.o.toFixed(3));st.setProperty('--sky-d',sk.d.toFixed(3));
+    st.setProperty('--beam-x',sk.x.toFixed(1)+'%');st.setProperty('--beam-r',sk.r.toFixed(1)+'deg');st.setProperty('--beam-o',sk.bo.toFixed(3));st.setProperty('--beam-c',sk.bc);}
+}
+function resetDay(){dayP=0;dayT=0;clockTxt='';lastCallSaid=false;}
 function renderBench(){
   const left=Math.max(0,dayCount()-spawned);
-  $('bench').innerHTML=`<span class="bl">等候</span>`+(BQ.length?BQ.map(sp=>`<div class="bs ${sp.vip?'vip':''}" data-id="${sp.id}">${avatar(sp.look)}<div class="bo"><span class="bi">${sp.steps.map(s=>`<svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[s]}</svg>`).join('')}</span><i class="bp"><b id="bp${sp.id}"></b></i></div></div>`).join(''):`<span class="be">长凳空着</span>`)+(left?`<span class="bn">还有 ${left} 位</span>`:'');
+  $('bench').innerHTML=`<span class="bl">等候</span>`+(BQ.length?BQ.map(sp=>`<div class="bs ${sp.vip?'vip':''}" data-id="${sp.id}">${avatar(sp.look)}<div class="bo"><span class="bi">${sp.steps.map(s=>`<svg viewBox="0 0 24 24" stroke-width="1.3">${ICONS[s]}</svg>`).join('')}</span><i class="bp"><b id="bp${sp.id}"></b></i></div></div>`).join(''):`<span class="be">长凳空着</span>`)+(left?`<span class="bn">还有 ${left} 位</span>`:'')+`<div class="dclock" id="dclock"></div>`;clockTxt='';if(C)updateDay(0);
   updateBenchBars();
 }
 function updateBenchBars(){for(const sp of BQ){const b=$('bp'+sp.id);if(b){const v=clamp(sp.wpat,0,100);b.style.width=v+'%';b.style.background=v>55?'var(--good)':v>25?'var(--warn)':'var(--bad)';}}}
@@ -1118,7 +1179,7 @@ function showDayEnd(){
   const g=starGoals(dayGoal),stars=g.filter(x=>dayEarn>=x).length,avg=dayStars.length?(dayStars.reduce((a,b)=>a+b,0)/dayStars.length):0;
   const lv=S.day;
   if(!stars){
-    open(`<h2>第 ${lv} 关没过</h2>
+    open(`<h2>打烊了 · 第 ${lv} 关没过</h2>
     <div class="bigstars dim">☆☆☆</div>
     <div class="receipt">
       <div class="row"><span>本关收入</span><span class="dots"></span><span>¥${dayEarn}</span></div>
@@ -1133,7 +1194,7 @@ function showDayEnd(){
   S.coins+=bonus;S.best=S.best||{};const first=!S.best[lv];S.best[lv]=Math.max(S.best[lv]||0,stars);
   S.day++;save();hud();
   const nextNew=ORDER.find(s=>UNLOCK[s]===S.day);
-  open(`<h2>第 ${lv} 关完成</h2>
+  open(`<h2>打烊啦 · 第 ${lv} 关完成</h2>
   <div class="bigstars">${'★'.repeat(stars)}<span>${'★'.repeat(3-stars)}</span></div>
   <div class="receipt">
     <div class="row"><span>服务客人</span><span class="dots"></span><span>${dayStars.length} 位${missed?` · 走掉 ${missed} 位`:''}</span></div>
@@ -1169,7 +1230,7 @@ function showShop(){
     save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=()=>{$('panel').onclick=null;startDay();};
 }
-function startDay(){vipSpawned=false;setChapter();{const ch=chOf(S.day);S.chSeen=S.chSeen||{};if(ch>1&&!S.chSeen[ch]&&!DBG.solo){S.chSeen[ch]=1;save();DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;open(chapterCardHtml(ch)+'<div class="btns"><button class="btn" id="chBtn">进店</button></div>');tone(523,523,.15,'triangle',.08);tone(659,659,.15,'triangle',.08,.15);tone(784,784,.15,'triangle',.08,.3);tone(1047,1047,.4,'triangle',.08,.45);$('chBtn').onclick=showLevelIntro;return;}}DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
+function startDay(){vipSpawned=false;setChapter();{const ch=chOf(S.day);S.chSeen=S.chSeen||{};if(ch>1&&!S.chSeen[ch]&&!DBG.solo){S.chSeen[ch]=1;save();DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;resetDay();dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;open(chapterCardHtml(ch)+'<div class="btns"><button class="btn" id="chBtn">进店</button></div>');tone(523,523,.15,'triangle',.08);tone(659,659,.15,'triangle',.08,.15);tone(784,784,.15,'triangle',.08,.3);tone(1047,1047,.4,'triangle',.08,.45);$('chBtn').onclick=showLevelIntro;return;}}DBG.solo=null;dayEarn=0;dayStars=[];doneCount=0;missed=0;BQ=[];spawned=0;resetDay();dayGoal=goalFor(S.day);arriveT=cfg(S.day).arrive;showLevelIntro();}
 function showLevelIntro(){
   if(isBossLv(S.day)&&!DBG.solo){showBossIntro();return;}
   const lv=S.day,g=starGoals(dayGoal),neu=ORDER.find(s=>UNLOCK[s]===lv&&lv>1);
@@ -1641,12 +1702,21 @@ function chairImg(){
     x.putImageData(im,0,0);}catch(e){}
   return CHAIR_CACHE[ch]=cw;
 }
+function eveGlow(){return clamp((hourOf(dayP)-15.8)/1.6,0,1);}
+function drawDaylight(c){
+  const sk=skyAt(hourOf(dayP));
+  c.save();c.globalCompositeOperation='source-atop';
+  c.fillStyle=sk.c;c.globalAlpha=sk.o*.16;c.fillRect(-20,-20,W+40,H+40);
+  if(sk.d>0){c.fillStyle='#2b2f6e';c.globalAlpha=sk.d*.32;c.fillRect(-20,-20,W+40,H+40);}
+  c.restore();
+}
 function drawScene(c,t){
-  const ch=chOf(S.day);
+  const ch=chOf(S.day),eg=eveGlow();
+  if(eg>0&&ch!==2){const g=c.createRadialGradient(180,-10,10,180,-10,170);g.addColorStop(0,`rgba(255,205,130,${(.38*eg).toFixed(3)})`);g.addColorStop(1,'rgba(255,205,130,0)');c.fillStyle=g;c.fillRect(0,0,W,180);}
   if(ch===2){
     for(const [x,ph] of [[34,0],[326,1.7]]){const sw=Math.sin(t*1.3+ph)*.06;c.save();c.translate(x,-10);c.rotate(sw);
       c.strokeStyle='#2b1a10';c.lineWidth=2;c.beginPath();c.moveTo(0,0);c.lineTo(0,40);c.stroke();
-      const g=c.createRadialGradient(0,72,4,0,72,60);g.addColorStop(0,'rgba(255,170,90,.35)');g.addColorStop(1,'rgba(255,170,90,0)');c.fillStyle=g;circ(c,0,72,60);
+      const g=c.createRadialGradient(0,72,4,0,72,60+30*eveGlow());g.addColorStop(0,`rgba(255,170,90,${(.3+.55*eveGlow()).toFixed(2)})`);g.addColorStop(1,'rgba(255,170,90,0)');c.fillStyle=g;circ(c,0,72,60);
       c.fillStyle='#c4302a';c.strokeStyle='#5a1410';c.lineWidth=2;c.beginPath();c.ellipse(0,72,26,32,0,0,TAU);c.fill();c.stroke();
       c.strokeStyle='rgba(90,20,16,.6)';c.lineWidth=1.5;for(const k of [-14,0,14]){c.beginPath();c.ellipse(0,72,Math.abs(k)?18:2,32,0,0,TAU);c.stroke();}
       c.fillStyle='#2b1a10';c.fillRect(-12,38,24,6);c.fillRect(-12,100,24,6);
@@ -1973,6 +2043,7 @@ function bmSummary(m){
 
 function update(dt,t){
   if(!C)return;
+  if(!paused)updateDay(dt);
   react(dt,t);
   const pe=entry;entry=Math.min(1,entry+dt*1.8);if(pe<1&&entry>=1)R.land=1;
   const bt=M&&M.type==='soak'?1:0;bucket+=(bt-bucket)*Math.min(1,dt*6);
@@ -2288,6 +2359,7 @@ function draw(t){
   const e=ease(entry);
   drawScene(ctx,t);drawImg(ctx,chairImg(),ART.chair);drawDecor(ctx,t);
   ctx.save();ctx.translate(face==='shiver'?Math.sin(t*50)*1.5:0,(1-e)*-340);drawFrog(ctx,t);ctx.restore();
+  drawDaylight(ctx);
   ctx.save();ctx.translate(FO.x,(1-e)*340+R.jy*.12+FO.y);
   if(bucket>.01)drawBucketBack(ctx,bucket);
   drawFoot(ctx,t);
