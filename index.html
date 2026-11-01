@@ -116,10 +116,11 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .sky i{position:absolute;display:block}
 .sky .grade{inset:0;background:var(--sky-c,#fff);opacity:var(--sky-o,0);mix-blend-mode:soft-light}
 .sky .dusk{inset:0;background:linear-gradient(180deg,#2b2f6e,#5a3a6e 55%,#c0603e);opacity:var(--sky-d,0);mix-blend-mode:multiply}
-.sky .beam{top:-25%;height:150%;width:58%;left:var(--beam-x,20%);transform:rotate(var(--beam-r,20deg));transform-origin:50% 0;
-  background:linear-gradient(90deg,transparent 0,rgba(var(--beam-c,255,240,200),.9) 12%,rgba(var(--beam-c,255,240,200),.9) 43%,transparent 47%,transparent 53%,rgba(var(--beam-c,255,240,200),.9) 57%,rgba(var(--beam-c,255,240,200),.9) 88%,transparent 100%);
-  opacity:var(--beam-o,0);mix-blend-mode:soft-light;filter:blur(10px)}
-@media (prefers-reduced-motion: no-preference){.sky .beam,.sky .grade,.sky .dusk{transition:opacity 1.2s,left 1.2s,transform 1.2s,background-color 1.2s}}
+.sky .glow{width:130%;height:95%;left:var(--glow-x,20%);top:var(--glow-y,30%);transform:translate(-50%,-50%);
+  background:radial-gradient(closest-side,rgba(var(--glow-c,255,240,200),.95),rgba(var(--glow-c,255,240,200),.45) 45%,rgba(var(--glow-c,255,240,200),0));
+  opacity:var(--glow-o,0);mix-blend-mode:soft-light}
+.dclock svg.win{width:34px;height:24px}
+@media (prefers-reduced-motion: no-preference){.sky .glow,.sky .grade,.sky .dusk{transition:opacity 1.2s,left 1.2s,top 1.2s,background-color 1.2s}}
 .bs{display:flex;align-items:center;gap:4px;background:var(--paper);border-radius:8px;padding:3px 6px 3px 3px;min-width:0;animation:bin .35s}
 @keyframes bin{from{transform:translateY(-8px);opacity:0}}
 .bs>svg{width:30px;height:25px;flex:none}
@@ -295,7 +296,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 </head>
 <body>
 <div id="app">
-  <div class="sky" id="sky" aria-hidden="true"><i class="grade"></i><i class="beam"></i><i class="dusk"></i></div>
+  <div class="sky" id="sky" aria-hidden="true"><i class="grade"></i><i class="glow"></i><i class="dusk"></i></div>
   <header class="top">
     <div class="sign" id="signText">奶蛙足道</div>
     <div class="stats">
@@ -731,20 +732,21 @@ function avatar(l){const c=lookColor(l);return`<svg viewBox="0 0 34 28" aria-hid
 /* ---------- 营业时间：9:00 开门，按服务进度走到 18:00 打烊 ---------- */
 let dayP=0,dayT=0,clockTxt='',skyKey='',lastCallSaid=false;
 const OPEN_H=9,CLOSE_H=18;
-const SKY=[ // h, 色调, 色调强度, 傍晚暗度, 光束位置, 光束角度, 光束强度, 光束颜色
-  [9,  '#ffe9b0',.55,0,  -6, 28,.85,'255,236,190'],
-  [11, '#fff6dc',.35,0,  14, 16,.75,'255,246,220'],
-  [13, '#ffffff',.2, 0,  32,  2,.55,'255,255,240'],
-  [15, '#ffd27a',.55,0,  50,-14,.8, '255,214,140'],
-  [16.5,'#ff9a5c',.7,.12,62,-26,.75,'255,170,110'],
-  [17.4,'#ff7a6a',.6,.38,72,-34,.35,'255,140,120'],
-  [18, '#7a8cff',.4,.62,80,-38,0,  '200,200,255']
+const SKY=[ // h, 墙面色调, 色调强度, 傍晚暗度, 光斑横向%, 光斑纵向%, 光斑强度, 光斑颜色, 小窗天空上/下
+  [9,   '#ffe9b0',.5, 0,  12,38,.9, '255,236,190','#8fd3ff','#fff1c4'],
+  [11,  '#fff6dc',.35,0,  30,24,.8, '255,246,220','#62bdff','#d6f1ff'],
+  [13,  '#ffffff',.2, 0,  50,16,.7, '255,255,240','#4fb0ff','#c8ecff'],
+  [15,  '#ffd27a',.5, 0,  68,26,.85,'255,214,140','#7fb6e8','#ffd99a'],
+  [16.5,'#ff9a5c',.65,.12,82,42,.8, '255,170,110','#6a7fd0','#ff9a6b'],
+  [17.4,'#ff7a6a',.55,.36,92,58,.45,'255,140,120','#3b3f8a','#e36a6a'],
+  [18,  '#7a8cff',.4, .6, 96,70,0,  '200,200,255','#1c2350','#3b3f8a']
 ];
 function skyAt(h){
   let i=0;while(i<SKY.length-2&&h>SKY[i+1][0])i++;
   const a=SKY[i],b=SKY[i+1],k=clamp((h-a[0])/(b[0]-a[0]),0,1),L=(x,y)=>x+(y-x)*k;
   const ca=hex2rgb(a[1]),cb=hex2rgb(b[1]),ba=a[7].split(',').map(Number),bb=b[7].split(',').map(Number);
-  return{c:`rgb(${[0,1,2].map(j=>Math.round(L(ca[j],cb[j]))).join(',')})`,o:L(a[2],b[2]),d:L(a[3],b[3]),x:L(a[4],b[4]),r:L(a[5],b[5]),bo:L(a[6],b[6]),bc:[0,1,2].map(j=>Math.round(L(ba[j],bb[j]))).join(',')};
+  const mix=(p,q)=>{const u=hex2rgb(p),v=hex2rgb(q);return`rgb(${[0,1,2].map(j=>Math.round(L(u[j],v[j]))).join(',')})`;};
+  return{c:mix(a[1],b[1]),o:L(a[2],b[2]),d:L(a[3],b[3]),x:L(a[4],b[4]),y:L(a[5],b[5]),bo:L(a[6],b[6]),bc:[0,1,2].map(j=>Math.round(L(ba[j],bb[j]))).join(','),top:mix(a[8],b[8]),bot:mix(a[9],b[9])};
 }
 function hex2rgb(h){const n=parseInt(h.slice(1),16);return[n>>16&255,n>>8&255,n&255];}
 function dayTarget(){
@@ -757,8 +759,12 @@ const hourOf=p=>OPEN_H+(CLOSE_H-OPEN_H)*p;
 function fmtClock(h){const hh=Math.floor(h),mm=Math.floor((h-hh)*6)*10;const ap=hh<12?'上午':hh<13?'中午':hh<18?'下午':'晚上';return`${ap} ${hh>12?hh-12:hh}:${String(mm).padStart(2,'0')}`;}
 function clockHtml(){
   const h=hourOf(dayP),left=CLOSE_H-h,night=h>=17.2;
-  const icon=night?'<svg viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 13.6A7 7 0 0 1 15.5 3.5z" fill="#ffe08a" stroke="#c99a2e" stroke-width="1.2"/></svg>'
-    :`<svg viewBox="0 0 24 24"><g stroke="${h>=15.5?'#ff9a5c':'#f5c95c'}" stroke-width="1.8" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180;return`<path d="M${12+Math.cos(r)*8} ${12+Math.sin(r)*8}L${12+Math.cos(r)*10.5} ${12+Math.sin(r)*10.5}"/>`;}).join('')}</g><circle cx="12" cy="12" r="5" fill="${h>=15.5?'#ffb070':'#ffd75e'}"/></svg>`;
+  const sk=skyAt(h),p=(h-OPEN_H)/(CLOSE_H-OPEN_H),sx=5+24*p,sy=19-13*Math.sin(Math.PI*Math.min(1,p*1.05));
+  const body=night?`<circle cx="22" cy="8" r="4" fill="#ffe9a8"/><circle cx="24" cy="6.8" r="3.4" fill="${sk.top}"/><circle cx="8" cy="6" r=".8" fill="#fff"/><circle cx="13" cy="10" r=".6" fill="#fff"/><circle cx="29" cy="14" r=".6" fill="#fff"/>`
+    :`<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="5" fill="${h>=16?'#ff8a4c':h>=14.5?'#ffb84a':'#ffd75e'}" opacity=".35"/><circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3.2" fill="${h>=16?'#ff8a4c':h>=14.5?'#ffb84a':'#ffe066'}"/>`;
+  const icon=`<svg class="win" viewBox="0 0 34 24"><defs><linearGradient id="dcsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sk.top}"/><stop offset="1" stop-color="${sk.bot}"/></linearGradient><clipPath id="dcclip"><rect x="1" y="1" width="32" height="22" rx="4"/></clipPath></defs>
+    <g clip-path="url(#dcclip)"><rect x="0" y="0" width="34" height="24" fill="url(#dcsky)"/>${body}<path d="M0 21q8-4 17-1t17-1v5H0z" fill="${night?'#24304a':'#5f8f52'}"/></g>
+    <rect x="1" y="1" width="32" height="22" rx="4" fill="none" stroke="#f3e3c4" stroke-width="1.6"/><path d="M17 1v22M1 12h32" stroke="#f3e3c4" stroke-width="1" opacity=".55"/></svg>`;
   const sub=dayP>=.999?'打烊啦':left<=1?'快打烊了':`约 ${Math.ceil(left)} 小时后打烊`;
   return{html:`${icon}<div><b>${fmtClock(h)}</b><small>${sub}</small></div>`,late:left<=1.5};
 }
@@ -767,9 +773,9 @@ function updateDay(dt){
   dayP+=(dayT-dayP)*Math.min(1,dt*1.2);if(Math.abs(dayT-dayP)<.0005)dayP=dayT;
   const ck=clockHtml(),el=$('dclock');
   if(el&&ck.html!==clockTxt){clockTxt=ck.html;el.innerHTML=ck.html;el.classList.toggle('late',ck.late);}
-  const sk=skyAt(hourOf(dayP)),key=[sk.c,sk.o.toFixed(2),sk.d.toFixed(2),sk.x.toFixed(0),sk.r.toFixed(0),sk.bo.toFixed(2)].join('|');
+  const sk=skyAt(hourOf(dayP)),key=[sk.c,sk.o.toFixed(2),sk.d.toFixed(2),sk.x.toFixed(0),sk.y.toFixed(0),sk.bo.toFixed(2)].join('|');
   if(key!==skyKey){skyKey=key;const st=$('sky').style;st.setProperty('--sky-c',sk.c);st.setProperty('--sky-o',sk.o.toFixed(3));st.setProperty('--sky-d',sk.d.toFixed(3));
-    st.setProperty('--beam-x',sk.x.toFixed(1)+'%');st.setProperty('--beam-r',sk.r.toFixed(1)+'deg');st.setProperty('--beam-o',sk.bo.toFixed(3));st.setProperty('--beam-c',sk.bc);}
+    st.setProperty('--glow-x',sk.x.toFixed(1)+'%');st.setProperty('--glow-y',sk.y.toFixed(1)+'%');st.setProperty('--glow-o',sk.bo.toFixed(3));st.setProperty('--glow-c',sk.bc);}
 }
 function resetDay(){dayP=0;dayT=0;clockTxt='';lastCallSaid=false;}
 function renderBench(){
