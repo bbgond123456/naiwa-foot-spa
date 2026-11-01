@@ -240,10 +240,16 @@ def run_pass(pw, url, throttle):
     pg.evaluate("__t.DBG.god=true")
     bot = Bot(pg)
     for s in SERVICES:
+        for _ in range(5):   # 上一位客人的账单等弹窗先关掉
+            for sel in ('#vipOk', '#nextBtn', '#resumeBtn'):
+                if harness.visible(pg, sel):
+                    pg.click(sel)
+            pg.wait_for_timeout(200)
         pg.evaluate(f"__t.DBG.solo='{s}';__t.seatSolo('{s}')")
         pg.wait_for_timeout(1200)
         if harness.visible(pg, '#vipOk'):
             pg.click('#vipOk')
+        pg.evaluate("__t.C.pat=1e6")   # 只看项目能不能做完，不让耐心耗尽打断
         pg.click(f'#tool-{s}')
         pg.wait_for_timeout(300)
         pg.evaluate("window.__fr=[]")
@@ -258,8 +264,9 @@ def run_pass(pw, url, throttle):
                 break
             pg.wait_for_timeout(100)
         q = pg.evaluate(f"__t.C.q['{s}']")
+        lost = pg.evaluate("Math.round(1e6-__t.C.pat)")
         out['services'][s] = dict(done=q is not None, q=None if q is None else round(q, 2),
-                                  sec=round(time.time() - t1, 1), frames=frame_stats(pg.evaluate("window.__fr")))
+                                  sec=round(time.time() - t1, 1), pat_lost=lost, frames=frame_stats(pg.evaluate("window.__fr")))
         print(f"  x{throttle} {s}: {out['services'][s]}", flush=True)
     out['heap_mb'] = round(cdp.send('Runtime.getHeapUsage')['usedSize'] / 1e6, 1)
     b.close()

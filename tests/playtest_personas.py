@@ -29,8 +29,10 @@ PERSONAS = {
     'expert':  dict(name='高手',     speed=0.90, pick=0.6, mu=.94, sd=.04, err=.05, wrong=.00, react=.55,  qte=.97, chat=.97, flaw=1.0, rough=.03),
     'rusher':  dict(name='急性子',   speed=0.80, pick=0.5, mu=.72, sd=.14, err=.45, wrong=.08, react=.60,  qte=.80, chat=.70, flaw=.70, rough=.50),
 }
-# 熟手做一项大概要多少秒（按摩随关卡穴位数变化，单独算）
-BASE_T = dict(soak=7, scrub=9, peel=9, trim=7, paint=7, mask=11, fish=12, wax=12, moxa=12, art=11)
+# 每项用时 = 固定部分（等水热、等鱼吃、等泥膜干，谁来都一样）+ 手上功夫部分 × 玩家速度
+# 参考了 smoke_minigames.py 里机器人真机操作的用时（机器人＝极限手速）
+STEP_T = dict(soak=(3, 2), scrub=(0, 10), peel=(0, 9), trim=(0, 5), paint=(0, 5), mask=(4, 10),
+              fish=(14, 6), wax=(5, 7), moxa=(3, 4), art=(0, 8))
 # 难一些的项目质量打折
 DIFF = dict(art=.08, moxa=.05, massage=.05, wax=.04, paint=.03, trim=.02)
 MAX_LV = int(__import__("os").environ.get("MAX_LV", 30))
@@ -52,12 +54,11 @@ def gauss_clip(rng, mu, sd, lo, hi):
 
 
 def step_time(step, lv, P, rng):
-    if step == 'massage':
-        notes = min(7, 3 + lv // 3)
-        base = notes * 1.9 + 1
+    if step == 'massage':          # 穴位按节奏出现，固定部分随关卡穴位数增加
+        fixed, skill = min(7, 3 + lv // 3) * .95, 1.5
     else:
-        base = BASE_T[step]
-    return base * P['speed'] * math.exp(rng.gauss(0, .18))
+        fixed, skill = STEP_T[step]
+    return fixed + skill * P['speed'] * math.exp(rng.gauss(0, .2))
 
 
 class Player:
