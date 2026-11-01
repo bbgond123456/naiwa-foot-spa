@@ -25,7 +25,7 @@ def level_rows(run):
     return rows
 
 
-def main():
+def build(RES=RES):
     out = dict(personas=[], smoke=None)
     for key in ORDER:
         runs = [json.loads(pathlib.Path(f).read_text()) for f in sorted(glob.glob(str(RES / f'campaign_{key}_*.json')))]
@@ -60,9 +60,14 @@ def main():
                                 fails=d['fails'], stuck=d['stuck'], n_runs=len(d['stars']) + d['stuck'])
                        for lv, d in sorted(per.items())}
         out['personas'].append(P)
-    sm = RES / 'smoke.json'
+    sm = pathlib.Path(__file__).parent / 'results' / 'smoke.json'
     if sm.exists():
         out['smoke'] = json.loads(sm.read_text())
+    return out
+
+
+def main():
+    out = build()
     (RES / 'summary.json').write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding='utf-8')
     for P in out['personas']:
         print(P['name'], [(r['cleared'], r['stuck']) for r in P['runs']])

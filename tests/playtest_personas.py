@@ -13,7 +13,7 @@
   python3 tests/playtest_personas.py novice 2        # 只跑「新手」，换随机种子 2
 结果写到 tests/results/campaign_<画像>_<种子>.json
 """
-import sys, json, math, random, time, pathlib
+import os, sys, json, math, random, time, pathlib
 from playwright.sync_api import sync_playwright
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import harness
@@ -30,9 +30,10 @@ PERSONAS = {
     'rusher':  dict(name='急性子',   speed=0.80, pick=0.5, mu=.72, sd=.14, err=.45, wrong=.08, react=.60,  qte=.80, chat=.70, flaw=.70, rough=.50),
 }
 # 每项用时 = 固定部分（等水热、等鱼吃、等泥膜干，谁来都一样）+ 手上功夫部分 × 玩家速度
-# 参考了 smoke_minigames.py 里机器人真机操作的用时（机器人＝极限手速）
+# 参考了 smoke_minigames.py 里机器人真机操作的用时（机器人＝极限手速）；
+# 鱼疗按“只赶大鱼、不引鱼”实测 5–10 秒
 STEP_T = dict(soak=(3, 2), scrub=(0, 10), peel=(0, 9), trim=(0, 5), paint=(0, 5), mask=(4, 10),
-              fish=(14, 6), wax=(5, 7), moxa=(3, 4), art=(0, 8))
+              fish=(5, 3), wax=(5, 7), moxa=(3, 4), art=(0, 8))
 # 难一些的项目质量打折
 DIFF = dict(art=.08, moxa=.05, massage=.05, wax=.04, paint=.03, trim=.02)
 MAX_LV = int(__import__("os").environ.get("MAX_LV", 30))
@@ -216,7 +217,7 @@ class Player:
 
 
 def run(key, seed=1, headless=True):
-    url = harness.build()
+    url = harness.build(os.environ.get('GAME_SRC'))   # 可以指定别的版本对比，默认 index.html
     out = dict(persona=key, name=PERSONAS[key]['name'], seed=seed, levels=[], errors=[], console=[])
     t0 = time.time()
     with sync_playwright() as pw:
@@ -262,7 +263,7 @@ def run(key, seed=1, headless=True):
             pg.clock.run_for(200)
         b.close()
     out['real_sec'] = round(time.time() - t0)
-    res = pathlib.Path(__file__).parent / 'results'
+    res = pathlib.Path(os.environ.get('OUT_DIR') or pathlib.Path(__file__).parent / 'results')
     res.mkdir(exist_ok=True)
     (res / f'campaign_{key}_{seed}.json').write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding='utf-8')
     return out

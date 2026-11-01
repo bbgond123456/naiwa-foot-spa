@@ -25,6 +25,8 @@ window.__t={
 def build(src=None, no_draw_switch=True):
     """生成测试版 HTML，返回 file:// 地址。"""
     src = pathlib.Path(src or ROOT / 'index.html').read_text(encoding='utf-8')
+    if not src.lstrip().lower().startswith('<!doctype'):
+        src = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + src
     tail = '\n})();\n</script>'
     assert src.count(tail) == 1, '找不到主脚本结尾'
     src = src.replace(tail, '\n' + HOOK + tail)
@@ -34,7 +36,7 @@ def build(src=None, no_draw_switch=True):
     # 测试环境连不上外网字体，去掉以免拖慢加载
     src = re.sub(r'<link rel="(?:preconnect|stylesheet)" href="https://fonts\.[^>]*>', '', src)
     BUILD.mkdir(parents=True, exist_ok=True)
-    out = BUILD / 'test.html'
+    out = BUILD / ('test_%d.html' % os.getpid())
     out.write_text(src, encoding='utf-8')
     return out.as_uri()
 

@@ -12,8 +12,10 @@ UNLOCK = {'soak': 1, 'scrub': 1, 'trim': 3, 'peel': 5, 'massage': 7, 'paint': 9,
 
 
 def pace_rows():
-    """游戏里的节奏参数（照 cfg() 的公式）对比模型里一位客人要做多久。"""
-    def steps_mean(d):
+    """游戏节奏参数（调整前 / 调整后的 cfg() 公式）对比模型里一位客人要做多久。"""
+    def steps_mean(d, new):
+        if new:
+            return 3 if d >= 12 else 2.5 if d >= 8 else 7 / 3 if d >= 3 else 5 / 3
         return 3 if d >= 8 else 7 / 3 if d >= 3 else 5 / 3
     def st(s, d, P):
         fixed, skill = (min(7, 3 + d // 3) * .95, 1.5) if s == 'massage' else STEP_T[s]
@@ -21,23 +23,37 @@ def pace_rows():
     rows = []
     for d in range(1, 31):
         U = [s for s in ORDER if UNLOCK[s] <= d]
-        r = dict(level=d, arrive=round(max(8, 19 - d * .8), 1), wait=round(max(30, 55 - d * 1.6), 1),
-                 patience=round(100 / ((1.35 + d * .06) * .95)))
+        r = dict(level=d,
+                 arrive_old=round(max(8, 19 - d * .8), 1), wait_old=round(max(30, 55 - d * 1.6), 1),
+                 patience_old=round(100 / ((1.35 + d * .06) * .95)),
+                 arrive=round(max(20, 21 - d * .3), 1), wait=round(max(70, 76 - d * .4), 1),
+                 patience=round(100 / ((1.2 + d * .012) * .95)))
         for k in ('skilled', 'expert'):
             P = PERSONAS[k]
-            n = steps_mean(d)
+            n = steps_mean(d, True)
             r[k] = round(n * (sum(st(s, d, P) for s in U) / len(U) + P['pick']) + P['pick'], 1)
         rows.append(r)
     return rows
 
 
+def load_summary(folder):
+    import importlib
+    sys.path.insert(0, str(pathlib.Path(__file__).parent))
+    import summarize
+    return summarize.build(pathlib.Path(folder))
+
+
 def main():
-    S = json.loads((RES / 'summary.json').read_text())
-    progress, levels, boss = [], [], []
+    S = load_summary(RES)
+    B = load_summary(pathlib.Path(__file__).parent / 'results_before')
+    progress, levels, boss, lost_cmp = [], [], [], []
+    for ver, SS in (('调整前', B), ('调整后', S)):
+        for P in SS['personas']:
+            for r in P['runs']:
+                progress.append(dict(id=f"{ver}-{P['key']}-{r['seed']}", version=ver, persona=P['key'], name=P['name'],
+                                     run=r['seed'], cleared=r['cleared'], stuck_at=r['stuck']))
     for P in S['personas']:
         for r in P['runs']:
-            progress.append(dict(id=f"{P['key']}-{r['seed']}", persona=P['key'], name=P['name'], run=r['seed'],
-                                 cleared=r['cleared'], stuck_at=r['stuck']))
             for x in r['rows']:
                 if x['boss']:
                     boss.append(dict(id=f"{P['key']}-{r['seed']}-{x['level']}-{x['attempt']}", name=P['name'], run=r['seed'],
@@ -46,6 +62,12 @@ def main():
         for lv, v in P['levels'].items():
             levels.append(dict(persona=P['key'], name=P['name'], level=int(lv), stars=v['stars'], tries=v['tries'],
                                lost_pct=v['lost'], angry_pct=v['angry'], fails=v['fails'], stuck=v['stuck']))
+    def avg_lost(SS, key):
+        P = next((p for p in SS['personas'] if p['key'] == key), None)
+        xs = [x for r in (P['runs'] if P else []) for x in r['rows'] if not x['boss'] and x['served'] + x['left']]
+        return round(100 * sum(x['left'] for x in xs) / max(1, sum(x['served'] + x['left'] for x in xs))) if xs else None
+    for P in S['personas']:
+        lost_cmp.append(dict(persona=P['key'], name=P['name'], before=avg_lost(B, P['key']), after=avg_lost(S, P['key'])))
     sm = {}
     for p in S['smoke']['passes']:
         for k, v in p['services'].items():
@@ -68,7 +90,7 @@ def main():
             dict(item='services_done', value=sum(1 for s in smoke if s['x1_done'] == '做完' and s['x4_done'] == '做完')),
             dict(item='services_total', value=len(smoke))]
     OUT.mkdir(parents=True, exist_ok=True)
-    for n, d in [('progress', progress), ('levels', levels), ('pace', pace_rows()), ('boss', boss), ('smoke', smoke), ('stability', stab)]:
+    for n, d in [('progress', progress), ('levels', levels), ('pace', pace_rows()), ('boss', boss), ('smoke', smoke), ('stability', stab), ('lost_cmp', lost_cmp)]:
         (OUT / f'{n}.json').write_text(json.dumps(d, ensure_ascii=False), encoding='utf-8')
         print(n, len(d))
     print(stab)
