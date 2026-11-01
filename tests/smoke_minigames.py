@@ -30,6 +30,8 @@ class Bot:
         return self.pg.evaluate(js)
 
     def foot(self, x, y):
+        # 画布大小会随单子高度变化（客人标签多一行少一行），每次都重新量
+        self.P = harness.Stage(self.pg)
         fo = self.ev("[__t.FO.x,__t.FO.y]")
         return self.P(x + fo[0], y + fo[1])
 
