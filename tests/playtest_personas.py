@@ -227,7 +227,7 @@ def run(key, seed=1, headless=True):
         pg.on('console', lambda m: m.type == 'error' and 'fonts.g' not in m.text and out['console'].append(m.text))
         cdp = pg.context.new_cdp_session(pg)
         pg.clock.install()
-        pg.add_init_script("window.requestAnimationFrame=cb=>setTimeout(()=>cb(performance.now()),50);")
+        pg.add_init_script("window.requestAnimationFrame=cb=>setTimeout(()=>cb(performance.now()),50);window.cancelAnimationFrame=id=>clearTimeout(id);")
         pg.goto(url)
         harness.set_save(pg, harness.save_state())
         pg.reload()

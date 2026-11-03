@@ -20,3 +20,7 @@ python3 tests/summarize.py && python3 tests/report_data.py   # 汇总成报告�
 ```
 
 结果写在 `tests/results/`（不入库）。
+
+## 字体
+
+游戏内置了站酷快乐体（ZCOOL KuaiLe）的子集，只包含游戏用到的字，许可证见 `fonts/ZCOOLKuaiLe-OFL.txt`（SIL Open Font License 1.1）。

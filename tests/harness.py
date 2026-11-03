@@ -16,7 +16,7 @@ window.__t={
   get B(){return bossRun},get chat(){return chatOpen},get BQ(){return BQ},get paused(){return paused},
   get day(){return{doneCount,missed,dayEarn,dayStars,dayGoal,spawned}},get entry(){return entry},
   get FO(){return FO},get ptrF(){return ptrF},get sc(){return [sc,ox,oy,dpr]},
-  DBG,TUT,STEPS,UNLOCK,ORDER,UPG,DECOS,seatSolo,useTool,finish,qteHit,qteEnd,answerChat,bmMove,bmDown,
+  DBG,TUT,STEPS,UNLOCK,ORDER,UPG,DECOS,seatSolo,makeSpec,seat,useTool,finish,qteHit,qteEnd,answerChat,bmMove,bmDown,
   goalFor,cfg,toolLv,clawMid,HERBS,COLORS,TIPS,soakZone,showShop,startDay,set shopTab(v){shopTab=v},
   set dayP(v){dayP=v;dayT=v},get dayP(){return dayP},
   noDraw:false
