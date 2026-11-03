@@ -24,3 +24,7 @@ python3 tests/summarize.py && python3 tests/report_data.py   # 汇总成报告�
 ## 字体
 
 游戏内置了站酷快乐体（ZCOOL KuaiLe）的子集，只包含游戏用到的字，许可证见 `fonts/ZCOOLKuaiLe-OFL.txt`（SIL Open Font License 1.1）。
+
+## 美术素材
+
+`assets/` 里是已经嵌进 `index.html` 的 AI 美术素材（压缩后的 webp）：三章背景 `bg_ch1-3`、标题主视觉 `title_art`、Logo 牌匾 `logo`（已抠白底）、`tools/` 下 12 个工具图标（从 4×3 拼图切出、抠白底）。`key_white.py` 是抠白底用的脚本：从图边缘泛洪填充近白色，先腐蚀 3px 防止从描边缺口漏进物体内部，再做 3px 的半透明过渡。
