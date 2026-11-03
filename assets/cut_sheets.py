@@ -3,12 +3,24 @@ from PIL import Image
 from scipy import ndimage
 SRC='/mnt/user-data/uploads/奶蛙足道/素材/'
 OUT='/tmp/claude-0/-home-claude/bac60e34-62fc-506b-bc1d-fd6fecff0de1/scratchpad/b3/'
+POCKET=400
 def key(rgb,lmn=165,ld=70):
     a=np.asarray(rgb.convert('RGB')).astype(np.float32); mn=a.min(2); mx=a.max(2)
     loose=(mn>lmn)&((mx-mn)<ld)
     core=ndimage.binary_erosion(loose,iterations=3,border_value=1)
     lab,_=ndimage.label(core); edge=set(np.unique(np.concatenate([lab[0],lab[-1],lab[:,0],lab[:,-1]])))-{0}
-    R=ndimage.binary_dilation(np.isin(lab,list(edge)),iterations=4)&(mn>120)
+    bgc=np.median(np.concatenate([a[:4].reshape(-1,3),a[-4:].reshape(-1,3),a[:,:4].reshape(-1,3),a[:,-4:].reshape(-1,3)]),0)
+    pk=(np.abs(a-bgc).max(2)<=5)
+    plab,pn=ndimage.label(pk); ps=ndimage.sum(pk,plab,range(1,pn+1))
+    keep=[]
+    objs_=ndimage.find_objects(plab)
+    for i in range(pn):
+        if ps[i]<POCKET: continue
+        sl=tuple(slice(max(0,x.start-4),x.stop+4) for x in objs_[i]); m=(plab[sl]==i+1)
+        ring=ndimage.binary_dilation(m,iterations=3)&~m
+        if ring.any() and (mn[sl][ring]<150).mean()>0.45: keep.append(i+1)
+    pockets=np.isin(plab,keep)
+    R=ndimage.binary_dilation(np.isin(lab,list(edge))|pockets,iterations=4)&(mn>120)
     al=np.ones(mn.shape,np.float32)
     k=np.clip((255-mn)/(255-110),0,1); al[R]=k[R]
     al[al<0.04]=0
