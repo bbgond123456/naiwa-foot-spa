@@ -178,7 +178,7 @@ class Player:
                     pg.evaluate("(()=>{let ts=performance.now()-900;for(let i=0;i<45;i++){ts+=16;__t.bmMove(60,ts);}})()")
             # 项目做完
             if self.sim and M and M['sim'] and now >= self.sim['end']:
-                pg.evaluate(f"__t.finish('{self.sim['step']}',{self.sim['q']})")
+                pg.evaluate(f"__t.M&&__t.M.type==='{self.sim['step']}'&&__t.finish('{self.sim['step']}',{self.sim['q']})")
                 self.sim = None
             # 选下一件工具
             busy = bm and ((bm['k'] == 'pick' and bm['phase']) or (bm['k'] == 'court' and bm['bow']))
