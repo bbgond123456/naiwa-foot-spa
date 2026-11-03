@@ -383,6 +383,19 @@ img.sti{width:1em;height:1em;vertical-align:-.12em;margin:0 .03em}
 .cfx{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;pointer-events:none;z-index:30;animation:cfall 2s ease-in forwards}
 @keyframes cfall{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(var(--dx),105vh) rotate(var(--rot))}}
 @media (prefers-reduced-motion: reduce){.sti.on{animation:none}}
+/* 手机触控尺寸：按钮至少 40px，热区补到 44px+；工具图标和文字加大 */
+.icon-btn{width:40px;height:40px;position:relative}
+.icon-btn::after{content:'';position:absolute;inset:-4px}
+.icon-btn svg{width:20px;height:20px}
+.tool img.ti{width:40px;height:40px}
+.tray.two .tool img.ti{width:32px;height:32px}
+.tool small{font-size:12.5px;font-weight:600;line-height:1.15}
+.tray.two .tool{min-height:58px}
+.st{font-size:13px;padding:3px 9px}
+.chip{font-size:13px}
+.pat img.pf{width:26px;height:26px;margin:-6px -2px -6px 0}
+@media (max-width:430px){.icon-btn{width:38px;height:38px}.chip{font-size:12.5px;padding:4px 8px}.sign{font-size:17px}}
+@media (max-width:370px){.icon-btn{width:36px;height:36px}.top{gap:5px}.sign small{display:none}}
 </style>
 
 </head>
@@ -2327,16 +2340,29 @@ function frogXf(c,t){
 function ell(c,x,y,rx,ry,rot){c.beginPath();c.ellipse(x,y,rx,ry,rot||0,0,TAU);}
 const HELD={"trim": ["t_trim", 0.1, 0.88, 44], "peel": ["t_peel", 0.08, 0.92, 46], "paint": ["t_brush", 0.06, 0.94, 44], "art": ["t_brush", 0.06, 0.94, 44], "mask": ["t_mask", 0.1, 0.92, 46], "wax": ["t_wax", 0.2, 0.3, 46], "massage": ["t_massage", 0.45, 0.55, 48]};
 function drawHeld(c,type){const h=HELD[type];if(!h||!ptrF)return false;return spr(c,h[0],ptrF[0],ptrF[1],h[3],h[1],h[2]);}
-let BOSS_SHY=380;const BOSS_ART={gourmet:[530,300,1.75,800],prince:[540,262,1.75,790],onsen:[550,292,1.75,800]};
+let BOSS_SHY=352;const BOSS_ART={gourmet:[515,300,1.55,850],prince:[520,262,1.55,840],onsen:[525,292,1.55,850]};
 const bossArtOn=()=>!!(C&&C.vip&&C.vip.boss&&BOSS_ART[C.vip.id]&&SI['boss_'+C.vip.id]&&SI['boss_'+C.vip.id].naturalWidth);
-function drawBossArt(c,t){const id=C.vip.id,b=BOSS_ART[id],k=b[2];
+const BOSS_EYE={gourmet:{x:442,y:248,r:35,col:'#d2e8c1',pr:12,pc:'#4a2a18',skin:'#fdd66b',lx:-.5,ly:0},prince:{x:452,y:215,r:58,col:'#f9efcf',pr:12,pc:'#180a06',skin:'#cbbd45',lx:-.8,ly:-.1},onsen:{x:468,y:237,r:50,col:'#fdeed0',pr:12,pc:'#3f1913',skin:'#fa7574',lx:.8,ly:0}};
+let bEye=[0,0];
+function drawBossArt(c,t){const id=C.vip.id,b=BOSS_ART[id],k=b[2],E=(window.__BE&&window.__BE[id])||BOSS_EYE[id];
   c.save();c.scale(KS,KS);c.translate(-X0,-Y0);
-  spr(c,'boss_'+id,948-b[0]*k,(b[3]||760)-b[1]*k,1024*k,0,0);
+  const ox=948-b[0]*k,oy=(b[3]||760)-b[1]*k;spr(c,'boss_'+id,ox,oy,1024*k,0,0);
+  if(E){const ex=ox+E.x*k,ey=oy+E.y*k,R=E.r*k,pr=E.pr*k*1.15,room=R-pr-5*k;
+    let tx=E.lx,ty=E.ly;
+    if(ptr){const vx=(ex-X0)*KS,vy=(ey-Y0)*KS,dx=ptr[0]-vx,dy=ptr[1]-vy,d=Math.hypot(dx,dy)||1,m=Math.min(1,d/70);tx=dx/d*m;ty=dy/d*m;}
+    else{tx+=Math.sin(t*.7)*.25;ty+=Math.sin(t*.53)*.15;}
+    if(face==='ouch'||face==='hot'){tx*=.2;ty*=.2;}
+    bEye[0]+=(tx-bEye[0])*.25;bEye[1]+=(ty-bEye[1])*.25;
+    const blink=(t%4.6)<.14;
+    c.fillStyle=blink?E.skin:E.col;c.beginPath();c.arc(ex,ey,R,0,TAU);c.fill();
+    if(blink){c.strokeStyle='#3a2418';c.lineWidth=6*k;c.lineCap='round';c.beginPath();c.arc(ex,ey-R*.35,R*.8,Math.PI*.2,Math.PI*.8);c.stroke();}
+    else{const pop=(face==='ouch'||face==='hot')?.7:1,px=ex+bEye[0]*room,py=ey+bEye[1]*room;c.fillStyle=E.pc;c.beginPath();c.arc(px,py,pr*pop,0,TAU);c.fill();
+      c.fillStyle='rgba(255,255,255,.9)';c.beginPath();c.arc(px-pr*.35,py-pr*.38,pr*.32,0,TAU);c.fill();}}
   c.restore();}
 function drawFrog(c,t){
   if(bossArtOn()){c.save();frogXf(c,t);drawBossArt(c,t);c.save();c.scale(KS,KS);c.translate(-X0,-Y0);
-    if(C.pat<32&&!C.done&&face!=='bliss')spr(c,'x_anger',1170,560,130*(.85+.15*Math.sin(t*9)),.5,.5);
-    if(face==='ouch'||face==='hot')spr(c,'x_drop',1200,660,96);
+    if(C.pat<32&&!C.done&&face!=='bliss')spr(c,'x_anger',1150,640,130*(.85+.15*Math.sin(t*9)),.5,.5);
+    if(face==='ouch'||face==='hot')spr(c,'x_drop',1180,740,96);
     c.restore();c.restore();return;}
   c.save();frogXf(c,t);
   if(C.acc==='curls'){c.save();c.scale(KS,KS);c.translate(-X0,-Y0);spr(c,'a_hair',948,1060,900);c.restore();}
