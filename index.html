@@ -939,10 +939,12 @@ function cfg(d){
     herbs:d>=6,gust:d>=12,soakNeed:d>=8?3:2.5,
     arrive:Math.max(20,21-d*.3),wait:Math.max(70,76-d*.4),
     patches:d>=8?3:2,
-    steps:d>=12?[2,3,3,4]:d>=8?[2,2,3,3]:d>=3?[2,2,3]:[1,2,2]
+    steps:d>=20?[2,3,3,3]:d>=8?[2,2,3,3]:d>=3?[2,2,3]:[1,2,2]
   };
 }
 const busyK=d=>d>=7?1.2:d>=3?1.1:1;
+/* 后期单子变短（每单平均 3→2.5/2.75 项），每项加价补回来，收入和过关目标不变 */
+const payK=d=>busyK(d)*(d>=20?3/2.75:d>=12?3/2.5:1);
 const goalFor=d=>Math.round(cfg(d).count*(38+d*6)*(d<=2?1:d<=10?1.25:1.3)*busyK(d)/10)*10;
 /* 店长帮忙：同一关连续没过 2 次起，客人更有耐心、1 星目标降低（3 星不变） */
 let assistLv=0;
@@ -1520,7 +1522,7 @@ function checkout(angry){
   tutEv('checkout');hintOff();
   C.done=true;M=null;Q=null;hold=false;scrubbing=false;peeling=false;$('swatches').hidden=true;closeChat();updateTray();
   if(C.boss){bossEnd(!angry);return;}
-  const k=(C.has('picky')?1.3:1)*busyK(S.day);
+  const k=(C.has('picky')?1.3:1)*payK(S.day);
   const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k*(1+.1*toolLv(s))):0}));
   let sum=rows.reduce((a,r)=>a+r.amt,0);
   const undone=rows.filter(r=>r.q==null).length;
