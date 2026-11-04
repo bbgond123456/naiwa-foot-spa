@@ -47,7 +47,8 @@ STATE_JS = """(()=>{const t=__t,C=t.C,M=t.M,Q=t.Q,B=t.B,ov=!document.getElementB
  let ch=null;if(t.chat){const c=t.chat;if(!c._id)c._id=Math.random();ch={id:c._id,good:c.good};}
  return{now:performance.now(),ov,btns,
   C:C?{si:C.si,steps:C.steps.slice(),done:C.done,pat:C.pat,boss:!!C.boss}:null,
-  M:M?{type:M.type,sim:M.type==='_sim'}:null,Q:q,chat:ch,bm,entry:t.entry,day:t.S.day}})()"""
+  M:M?{type:M.type,sim:M.type==='_sim'}:null,Q:q,chat:ch,bm,entry:t.entry,day:t.S.day,
+  pay:(()=>{const p=document.getElementById('paycard');return p&&!p.hidden&&p.dataset.n?{n:+p.dataset.n,angry:p.classList.contains('angry')}:null})()}})()"""
 
 
 def gauss_clip(rng, mu, sd, lo, hi):
@@ -80,6 +81,7 @@ class Player:
         rec = dict(customers=0, angry=0, qte_ok=0, qte_n=0, wrong=0, slips=0)
         t_start = None
         self.sched, self.seen, self.pick_at, self.sim = [], set(), None, None
+        self.paid = set()
         while True:
             st = pg.evaluate(STATE_JS)
             now = st['now']
@@ -88,6 +90,12 @@ class Player:
             if now - t_start > 20 * 60 * 1000:
                 rec['result'] = 'timeout'
                 return rec
+            # 结账付款卡（每位客人结束后不再弹账单，改成底部付款卡）
+            if st.get('pay') and st['pay']['n'] not in self.paid:
+                self.paid.add(st['pay']['n'])
+                rec['customers'] += 1
+                rec['angry'] += st['pay']['angry']
+                self.sim, self.pick_at = None, None
             if st['ov']:
                 b = st['btns']
                 if 'vipOk' in b:
