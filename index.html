@@ -389,7 +389,7 @@ img.sti{width:1em;height:1em;vertical-align:-.12em;margin:0 .03em}
 .icon-btn svg{width:20px;height:20px}
 .tool img.ti{width:40px;height:40px}
 .tray.two .tool img.ti{width:32px;height:32px}
-.tool small{font-size:12.5px;font-weight:600;line-height:1.15}
+.tool small{font-size:clamp(10.5px,3.1vw,12.5px);font-weight:600;line-height:1.15;white-space:nowrap;letter-spacing:-.02em}
 .tray.two .tool{min-height:58px}
 .st{font-size:13px;padding:3px 9px}
 .chip{font-size:13px}
@@ -423,6 +423,17 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 .daylog .dh{white-space:nowrap}
 .daylog .dh i.hh{width:12px;height:11px}
 .daylog .dl.angry .dh em,.daylog .dl.miss .dn{font-style:normal;color:var(--bad);font-size:12px}
+.rv{display:inline-block;font-family:var(--display);font-size:13px;line-height:1;padding:4px 9px 3px;border-radius:999px;border:1.5px solid;white-space:nowrap;vertical-align:middle}
+.rv.good{color:#c4302a;background:#ffe6d9;border-color:#f0a58a}
+.rv.mid{color:#8a6a14;background:#fff3cc;border-color:#e7cf7a}
+.rv.bad{color:#6b6b72;background:#ececf0;border-color:#c9c9d2}
+.rv.big{font-size:22px;padding:7px 18px 6px;border-width:2px}
+.rv.pop{animation:stpop .5s cubic-bezier(.2,1.7,.4,1) .15s backwards}
+.rvrow{text-align:left}
+.daylog .rv{font-size:11px;padding:3px 7px 2px}
+/* Boss 关只有一位客人：不显示长凳，单子更紧凑，把空间留给画面 */
+#app.bosslv .bench{display:none}
+#app.bosslv .st{font-size:12px;padding:2px 7px}
 </style>
 
 </head>
@@ -1168,7 +1179,7 @@ function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offset
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
   $('patLbl').textContent=C.boss?'满意度':'耐心';$('patWrap').classList.toggle('boss',!!C.boss);
-  const tg=(assistLv&&!DBG.solo?'<span class="tg assist">店长帮忙中</span>':'')+(C.boss?`<span class="tg boss">BOSS${bossRun&&BM_TAG[bossRun.id]?' · '+BM_TAG[bossRun.id]:''} · 满意度 60/75/90 = 1/2/3 星</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
+  const tg=(assistLv&&!DBG.solo?'<span class="tg assist">店长帮忙中</span>':'')+(C.boss?`<span class="tg boss">BOSS${bossRun&&BM_TAG[bossRun.id]?' · '+BM_TAG[bossRun.id]:''}</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
   $('tags').innerHTML=tg;$('tags').hidden=!tg;
   $('chips').innerHTML=C.steps.map((s,i)=>{
     const cls=C.q[s]!=null?'done':(i===C.si?'cur':'');
@@ -1475,10 +1486,14 @@ function addFT(t,x,y,c,size,s){
 
 /* ---------- checkout / level flow ---------- */
 let dayLog=[],payN=0,payT=null,payOpen=false;
+/* 每位客人只给 好评/中评/差评；星星只用于整关结果 */
+const reviewOf=(st,angry)=>angry||st<=2?'bad':st===3?'mid':'good';
+const REV_TXT={good:'好评',mid:'中评',bad:'差评'};
+const revHtml=(st,angry,cls)=>{const r=reviewOf(st,angry);return`<span class="rv ${r} ${cls||''}">${REV_TXT[r]}</span>`;};
 const heartsHtml=(n,tot)=>Array.from({length:tot},(_,i)=>`<i class="hh${i<n?'':' off'}" style="animation-delay:${(.15+i*.12).toFixed(2)}s"></i>`).join('');
 function payCard(e){const pc=$('paycard');payN++;payOpen=true;clearTimeout(payT);
   pc.className='paycard'+(e.angry?' angry':'');pc.dataset.n=payN;
-  pc.innerHTML=`${avatar(e.look)}<div class="pcm"><b>${e.name}</b><span>${e.angry?'<em>气走了 · 只付一半</em>':heartsHtml(e.stars,5)}</span></div><div class="pca">+¥<span id="payAmt">0</span></div>`;
+  pc.innerHTML=`${avatar(e.look)}<div class="pcm"><b>${e.name}</b><span>${revHtml(e.stars,e.angry,'pop')}${e.angry?' <em>气走了 · 只付一半</em>':''}</span></div><div class="pca">+¥<span id="payAmt">0</span></div>`;
   pc.hidden=false;pc.classList.remove('in','out');void pc.offsetWidth;pc.classList.add('in');
   const t0=performance.now(),amt=$('payAmt');(function f(){const k=Math.min(1,(performance.now()-t0)/650);amt.textContent=Math.round(e.total*(1-Math.pow(1-k,3)));if(k<1&&amt.isConnected)requestAnimationFrame(f);})();
   if(e.total>0)setTimeout(()=>{flyCoins(Math.min(9,2+Math.ceil(e.total/25)),pc);setTimeout(hud,700);},280);
@@ -1486,7 +1501,7 @@ function payCard(e){const pc=$('paycard');payN++;payOpen=true;clearTimeout(payT)
 function afterPay(){if(!payOpen)return;if(paused){payT=setTimeout(afterPay,300);return;}payOpen=false;clearTimeout(payT);const pc=$('paycard');pc.classList.add('out');setTimeout(()=>{if(!payOpen)pc.hidden=true;},260);
   doneCount++;if(doneCount+missed>=dayCount())showDayEnd();else nextCustomer();}
 function dayLogHtml(){if(!dayLog.length&&!missed)return'';
-  return`<div class="receipt daylog"><div class="dlh">今日账单</div>${dayLog.map(e=>`<div class="row dl ${e.angry?'angry':''}">${avatar(e.look)}<span class="dn">${e.name}</span><span class="dh">${e.angry?'<em>气走</em>':heartsHtml(e.stars,e.stars)}</span><span class="dots"></span><span>¥${e.total}</span></div>`).join('')}${missed?`<div class="row dl miss"><span class="dn">排队走掉 ${missed} 位</span><span class="dots"></span><span>¥0</span></div>`:''}</div>`;}
+  return`<div class="receipt daylog"><div class="dlh">今日账单</div>${dayLog.map(e=>`<div class="row dl ${e.angry?'angry':''}">${avatar(e.look)}<span class="dn">${e.name}</span><span class="dh">${revHtml(e.stars,e.angry)}</span><span class="dots"></span><span>¥${e.total}</span></div>`).join('')}${missed?`<div class="row dl miss"><span class="dn">排队走掉 ${missed} 位</span><span class="dots"></span><span>¥0</span></div>`:''}</div>`;}
 function checkout(angry){
   if(!C||C.done)return;
   tutEv('checkout');hintOff();
@@ -1518,7 +1533,7 @@ function showReceipt(rows,tip,cut,total,stars,line,angry,extras){
   const rr=rows.map(r=>`<div class="row"><span>${STEPS[r.s].n}${r.q!=null&&r.q<.99?` <span class="x">×${Math.round(r.q*100)}%</span>`:''}</span><span class="dots"></span><span>${r.q==null?'<span class="x">未做</span>':'¥'+r.amt}</span></div>`).join('');
   const g=starGoals(dayGoal),got=g.filter(x=>dayEarn>=x).length;
   open(`<h2>${C.name} 的账单</h2>
-  <div class="stars" aria-label="${stars} 星">${starImgs(stars,5)}</div>
+  <div class="rvrow">${revHtml(stars,angry,'big pop')}</div>
   <div class="say">「${line}」</div>
   <div class="receipt">${rr}
     ${tip?`<div class="row"><span>小费${C.has('rich')?' <span class="x">大方×2</span>':''}</span><span class="dots"></span><span>¥${tip}</span></div>`:''}
@@ -1561,7 +1576,7 @@ function showDayEnd(){
   ${dayLogHtml()}
   <div class="receipt">
     <div class="row"><span>服务客人</span><span class="dots"></span><span>${dayStars.length} 位${missed?` · 走掉 ${missed} 位`:''}</span></div>
-    <div class="row"><span>平均满意度</span><span class="dots"></span><span><span style="color:#e8576a">♥</span> ${avg.toFixed(1)}</span></div>
+    <div class="row"><span>客人评价</span><span class="dots"></span><span>${(()=>{const n={good:0,mid:0,bad:0};dayLog.forEach(e=>n[reviewOf(e.stars,e.angry)]++);return`好评 ${n.good} · 中评 ${n.mid} · 差评 ${n.bad}`;})()}</span></div>
     <div class="row"><span>本关收入</span><span class="dots"></span><span>¥${dayEarn}</span></div>
     ${bonus?`<div class="row"><span>${stars} 星奖励</span><span class="dots"></span><span>+¥${bonus}</span></div>`:''}
     <div class="row total"><span>钱包</span><span class="dots"></span><span>¥${S.coins}</span></div>
@@ -2083,7 +2098,7 @@ const CHAPTERS=[
 ];
 const chOf=lv=>lv>=21?3:lv>=11?2:1;
 const CH_NUM=['','第一章','第二章','第三章'];
-function setChapter(){const ch=chOf(S.day);$('app').dataset.ch=ch;$('signText').innerHTML='奶蛙足道'+(ch===1?'':`<small>${ch===2?'老街':'温泉'}</small>`);}
+function setChapter(){const ch=chOf(S.day);$('app').dataset.ch=ch;$('app').classList.toggle('bosslv',isBossLv(S.day)&&!DBG.solo);$('signText').innerHTML='奶蛙足道'+(ch===1?'':`<small>${ch===2?'老街':'温泉'}</small>`);}
 const CHAIR_TONE={2:{h:24,s:.78,v:.72},3:{h:38,s:.62,v:1.22}};
 const CHAIR_CACHE={};
 function chairImg(){
@@ -2542,7 +2557,7 @@ function frogXf(c,t){
 function ell(c,x,y,rx,ry,rot){c.beginPath();c.ellipse(x,y,rx,ry,rot||0,0,TAU);}
 const HELD={"trim": ["t_trim", 0.1, 0.88, 44], "peel": ["t_peel", 0.08, 0.92, 46], "paint": ["t_brush", 0.06, 0.94, 44], "art": ["t_brush", 0.06, 0.94, 44], "mask": ["t_mask", 0.1, 0.92, 46], "wax": ["t_wax", 0.2, 0.3, 46], "massage": ["t_massage", 0.45, 0.55, 48]};
 function drawHeld(c,type){const h=HELD[type];if(!h||!ptrF)return false;return spr(c,h[0],ptrF[0],ptrF[1],h[3],h[1],h[2]);}
-let BOSS_SHY=352;const BOSS_ART={gourmet:[515,300,1.55,850],prince:[520,262,1.55,840],onsen:[525,292,1.55,850]};
+let BOSS_SHY=360;const BOSS_ART={gourmet:[515,300,1.65,845],prince:[520,262,1.65,835],onsen:[525,292,1.65,845]};
 const bossArtOn=()=>!!(C&&C.vip&&C.vip.boss&&BOSS_ART[C.vip.id]&&SI['boss_'+C.vip.id]&&SI['boss_'+C.vip.id].naturalWidth);
 const BOSS_EYE={"gourmet": {"px": 399.0, "py": 214.0, "pw": 84.0, "ph": 81.0, "x": 440.5, "y": 254.1, "rx": 37.5, "ry": 36.0, "pr": 12.9, "pc": "#4a2a18", "skin": "#fdd66b", "lx": -0.58, "ly": -0.3}, "prince": {"px": 382.0, "py": 177.0, "pw": 137.0, "ph": 90.0, "x": 450.6, "y": 220.1, "rx": 64.0, "ry": 40.5, "pr": 10.8, "pc": "#180a06", "skin": "#cbbd45", "lx": -0.85, "ly": -0.45}, "onsen": {"px": 436.0, "py": 194.0, "pw": 101.0, "ph": 83.0, "x": 486.5, "y": 235.2, "rx": 46.0, "ry": 37.0, "pr": 9.4, "pc": "#3f1913", "skin": "#fa7574", "lx": 0.85, "ly": 0.12}};
 let bEye=[0,0];const EYEC={};
