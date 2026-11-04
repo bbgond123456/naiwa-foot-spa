@@ -448,6 +448,15 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 /* Boss 关只有一位客人：不显示长凳，单子更紧凑，把空间留给画面 */
 #app.bosslv .bench{display:none}
 #app.bosslv .st{font-size:12px;padding:2px 7px}
+
+/* 道具进化 */
+.tool{position:relative}
+.tool[data-lv]::after{content:attr(data-lv);position:absolute;top:2px;right:3px;font:700 9px/1 system-ui,sans-serif;padding:2px 3px;border-radius:5px;background:#5b3a1c;color:#ffe9a0;pointer-events:none}
+.tool[data-lv="✦"]::after{font-size:11px;padding:1px 4px;background:linear-gradient(#ffe38a,#e0a72e);color:#6a3a08;box-shadow:0 0 6px #ffd76a}
+.shop .evo{color:#b8460f}
+.evobanner{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:linear-gradient(#fff3c8,#ffd76a);border:2px solid #e0a72e;text-align:center;animation:stpop .5s cubic-bezier(.2,1.7,.4,1)}
+.evobanner b{display:block;font-size:16px;color:#7a3a08}
+.evobanner span{font-size:13px;color:#6a4a20}
 </style>
 
 <div id="app">
@@ -510,22 +519,25 @@ new ResizeObserver(()=>{resize();placeScene();}).observe(wrap);new ResizeObserve
 /* ---------- data ---------- */
 const STEPS={soak:{n:'泡脚',p:15},scrub:{n:'搓泥',p:25},peel:{n:'去角质',p:30},fish:{n:'鱼疗',p:45},wax:{n:'脱脚毛',p:45},mask:{n:'足膜',p:40},moxa:{n:'拔罐',p:55},art:{n:'足部彩绘',p:60},trim:{n:'修脚',p:30},massage:{n:'足底按摩',p:40},paint:{n:'蛙趾美甲',p:35}};
 const UPG=[
-  {id:'kettle',svc:'soak',n:'泡脚桶',lv:['木桶','恒温桶','中药桶','温泉桶'],d:'舒适水温区间更宽'},
-  {id:'brush',svc:'scrub',n:'搓澡巾',lv:['毛巾','加厚巾','电动刷','火山石'],d:'搓得更宽，硬泥块更好搓'},
-  {id:'clip',svc:'trim',n:'指甲钳',lv:['普通钳','进口钳','修脚刀','修脚仪'],d:'更容易剪中指甲，老茧锉得更快'},
-  {id:'blade',svc:'peel',n:'刮刀',lv:['小刮刀','宽刮刀','双刃刮刀','陶瓷刮刀'],d:'一刀刮得更宽'},
-  {id:'massage',svc:'massage',n:'推拿手法',lv:['入门','熟练','老师傅','大师'],d:'光圈缩得更慢'},
-  {id:'paint',svc:'paint',n:'甲油',lv:['杂牌甲油','光疗甲油','珠光甲油','宝石甲油'],d:'美甲卖得更贵'},
-  {id:'mask',svc:'mask',n:'泥膜',lv:['普通泥膜','海藻泥膜','火山泥膜','黄金泥膜'],d:'抹得更宽，干得更快'},
-  {id:'fish',svc:'fish',n:'鱼缸',lv:['小鱼缸','大鱼缸','温泉鱼缸','珊瑚鱼缸'],d:'多 2 条小鱼'},
-  {id:'wax',svc:'wax',n:'蜡条',lv:['普通蜡条','蜂蜡条','玫瑰蜡条','无痛蜡条'],d:'撕的绿区更宽'},
-  {id:'moxa',svc:'moxa',n:'火罐',lv:['玻璃罐','竹罐','陶罐','温玉罐'],d:'罐子变绿后能多等一会儿'},
-  {id:'art',svc:'art',n:'画笔',lv:['普通画笔','细头画笔','金粉画笔','大师画笔'],d:'描线容错更大'}
+  {id:'kettle',svc:'soak',n:'泡脚桶',lv:['木桶','恒温桶','中药桶','温泉桶'],d:'绿区更宽，泡得更快',evo:'恒温：水几乎不会变凉'},
+  {id:'brush',svc:'scrub',n:'搓澡巾',lv:['毛巾','加厚巾','电动刷','火山石'],d:'一下搓得更宽，硬泥块更好搓',evo:'碎石：硬泥块一搓就碎'},
+  {id:'clip',svc:'trim',n:'指甲钳',lv:['普通钳','进口钳','修脚刀','修脚仪'],d:'更容易剪中，老茧锉得更快',evo:'连剪：剪一个，旁边的一起剪掉'},
+  {id:'blade',svc:'peel',n:'刮刀',lv:['小刮刀','宽刮刀','双刃刮刀','陶瓷刮刀'],d:'一刀更宽，泡泡块更早掉',evo:'一刀落：刮一下整块就掉'},
+  {id:'massage',svc:'massage',n:'推拿手法',lv:['入门','熟练','老师傅','大师'],d:'光圈缩得更慢',evo:'点穴大师：每次少按 2 个穴位'},
+  {id:'paint',svc:'paint',n:'甲油',lv:['杂牌甲油','光疗甲油','珠光甲油','宝石甲油'],d:'美甲卖得更贵',evo:'一刷全涂：同色的脚趾一下全涂好'},
+  {id:'mask',svc:'mask',n:'泥膜',lv:['普通泥膜','海藻泥膜','火山泥膜','黄金泥膜'],d:'抹得更宽，干得更快',evo:'速干：抹七成就够，几乎不用等'},
+  {id:'fish',svc:'fish',n:'鱼缸',lv:['小鱼缸','大鱼缸','温泉鱼缸','珊瑚鱼缸'],d:'多 2 条小鱼',evo:'乖鱼：调皮的大鱼不来捣乱'},
+  {id:'wax',svc:'wax',n:'蜡条',lv:['普通蜡条','蜂蜡条','玫瑰蜡条','无痛蜡条'],d:'抹得更快，撕的绿区更宽',evo:'无痛：绿区占满大半圈'},
+  {id:'moxa',svc:'moxa',n:'火罐',lv:['玻璃罐','竹罐','陶罐','温玉罐'],d:'变绿得更快，能多等一会儿',evo:'温玉：罐子不会烫伤客人'},
+  {id:'art',svc:'art',n:'画笔',lv:['普通画笔','细头画笔','金粉画笔','大师画笔'],d:'描线容错更大',evo:'神笔：描到七成就自动补完'}
 ];
 const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:380,fish:420,wax:460,moxa:500,art:550};
-const TOOL_MULT=[1,2.2,4.5],TOOL_MAX=3;
+const TOOL_MULT=[1,2.4,5],TOOL_MAX=3;
+/* 道具进化：每级收费 +20% / +45% / +80%，3 级解锁进化技能 */
+const TOOL_PAY=[0,.2,.45,.8];
 const upCost=(u,lv)=>Math.round(TOOL_BASE[u.svc]*TOOL_MULT.at(lv)/10)*10;
 const toolLv=svc=>{const u=UPG.find(t=>t.svc===svc);return u?(S.up[u.id]||0):0;};
+const evo=svc=>toolLv(svc)>=TOOL_MAX;
 const NAMES=['呱太郎','蛙小美','老蛙头','阿呱','绿豆','呱呱姐','蛙大爷','荷叶仙','跳跳','小青','泥鳅哥','莲蓬','呱子','田鸡王'];
 const PALS=[
   {skin:'#a3d98f',sole:'#d4f0c2',web:'#bfe6a8',out:'#3d6a33',belly:'#ecf8dc',blush:'#f29a9a'},
@@ -1232,7 +1244,7 @@ const ICONS={
 const TOOLS=[['soak','木桶'],['scrub','搓澡巾'],['trim','指甲钳'],['peel','刮刀'],['massage','推拿'],['paint','甲油'],['mask','泥膜'],['fish','鱼缸'],['wax','蜡条'],['moxa','火罐'],['art','画笔'],['towel','毛巾']];
 $('tray').innerHTML=TOOLS.map(([id,n])=>`<button class="tool" id="tool-${id}" data-id="${id}" aria-label="${n}">${ti(id)}<small>${n}</small></button>`).join('');
 $('tray').addEventListener('click',e=>{const b=e.target.closest('.tool');if(b)useTool(b.dataset.id,b);});
-function updateTray(){let n=0;document.querySelectorAll('.tool').forEach(b=>{const id=b.dataset.id,lock=id!=='towel'&&UNLOCK[id]>S.day;b.hidden=lock;if(!lock)n++;b.classList.toggle('active',!!M&&M.type===id);b.classList.remove('hint');});const tr=$('tray');tr.style.setProperty('--cols',n<=7?n:Math.ceil(n/2));tr.classList.toggle('two',n>7);}
+function updateTray(){let n=0;document.querySelectorAll('.tool').forEach(b=>{const id=b.dataset.id,lock=id!=='towel'&&UNLOCK[id]>S.day;b.hidden=lock;if(!lock)n++;b.classList.toggle('active',!!M&&M.type===id);b.classList.remove('hint');const tl=id==='towel'?0:toolLv(id);if(tl)b.dataset.lv=tl>=TOOL_MAX?'✦':'Lv'+tl;else delete b.dataset.lv;});const tr=$('tray');tr.style.setProperty('--cols',n<=7?n:Math.ceil(n/2));tr.classList.toggle('two',n>7);}
 function hintTool(id){const b=$('tool-'+id);if(b)b.classList.add('hint');}
 
 function useTool(id,btn){
@@ -1275,7 +1287,7 @@ function startMini(t){sfx.pick(t);if(t==='soak')setTimeout(()=>{if(M&&M.type==='
     let s='点长指甲把它剪掉，别夹到肉';if(C.nails.some(n=>n.thick))s+='；厚指甲要剪几下';if(C.callus)s+='；脚跟老茧按住来回锉';setInstr(s);
   }
   if(t==='massage'){
-    const pts=[];for(let i=0;i<K.mNotes;i++){let p;do{p=pick(POINTS);}while(pts.length&&p===pts[pts.length-1]);pts.push(p);}
+    const pts=[];for(let i=0;i<Math.max(3,K.mNotes-(evo('massage')?2:0));i++){let p;do{p=pick(POINTS);}while(pts.length&&p===pts[pts.length-1]);pts.push(p);}
     if(C.has('insomnia')){const ins=POINTS.find(p=>p.n==='失眠点');pts.splice(2,0,ins);pts.push(ins);}
     const seq=pts.map(p=>({p,type:K.rapid&&Math.random()<.2?'rapid':K.hold&&Math.random()<.28?'hold':'tap'}));
     M={type:'massage',seq,k:0,r:56,wait:.6,score:0,spd:44*K.mSpeed*(1-.08*toolLv('massage')),holding:false,hfill:0,hq:0,taps:0,rt:1.8,t0:now};
@@ -1409,7 +1421,7 @@ cv.addEventListener('pointermove',e=>{
     const moved=Math.hypot(p[0]-lastP[0],p[1]-lastP[1]),now=performance.now(),spd=moved/Math.max(8,now-M.lastT)*1000;M.lastT=now;LV.scrub=Math.max(LV.scrub,Math.min(1,spd/900));
     if(moved>1.5&&onFoot(p[0],p[1])){
       const br=15+S.up.brush*5;
-      for(const l of C.lumps){if(l.hp>0&&Math.hypot(p[0]-l.x,p[1]-l.y)<l.r+br*.6){l.hp-=moved*.0035*(1+S.up.brush*.25);
+      for(const l of C.lumps){if(l.hp>0&&Math.hypot(p[0]-l.x,p[1]-l.y)<l.r+br*.6){l.hp-=moved*.0035*(1+S.up.brush*.25)*(evo('scrub')?3:1);
         if(Math.random()<.3)PS.push({k:'mud',x:l.x,y:l.y,vx:(Math.random()-.5)*80,vy:-40,life:1,max:1,r:2+Math.random()*2});
         if(l.hp<=0){for(let k=0;k<10;k++)PS.push({k:'mud',x:l.x,y:l.y,vx:(Math.random()-.5)*160,vy:-80-Math.random()*60,life:1,max:1,r:2+Math.random()*3});addFT('碎了！',l.x,l.y-14,'#ffffff',16);sfx.clip();}}}
       let onT=false;for(const z of C.tickles)if(Math.hypot(p[0]-z.x,p[1]-z.y)<z.r+6)onT=true;
@@ -1459,6 +1471,7 @@ function tryClip(x,y){
     n.clipped=true;
     PS.push({k:'chip',x:mx,y:my,vx:(Math.random()-.5)*160,vy:-120-Math.random()*60,life:1.1,max:1.1,r:n.len*.5,rot:0,vr:(Math.random()-.5)*14});setTimeout(()=>sfx.tink(),380);
     addFT('咔嚓',mx,my-14,'#ffffff',18);
+    if(evo('trim'))[best-1,best+1].forEach(j=>{const m=C.nails[j];if(m&&m.long&&!m.clipped){m.hp=0;m.clipped=true;const [jx,jy]=clawMid(j);PS.push({k:'chip',x:jx,y:jy,vx:(Math.random()-.5)*160,vy:-120,life:1.1,max:1.1,r:m.len*.5,rot:0,vr:8});addFT('连剪！',jx,jy-14,'#f5c95c',16);}});
     checkTrimDone();
   }else if(onFoot(x,y)){
     M.miss++;C.pat-=6;setFace('ouch',1);say(pick(LINES.ouch));sfx.bad();shake=.35;addFT('夹到肉',x,y-10,'#ff8a80',18);
@@ -1490,7 +1503,8 @@ function tryPaint(x,y){
     for(let i=0;i<6;i++)PS.push({k:'spark',x:t[0],y:t[1]-10,vx:(Math.random()-.5)*90,vy:-30-Math.random()*60,life:.7,max:.7,r:4,c:M.color.c});
     if(!target){M.wrong++;C.pat-=5;setFace('angry',1);say('这个脚趾不用涂！快擦掉。');sfx.bad();}
     else if(M.color!==target){M.wrong++;C.pat-=5;setFace('angry',1);say(`这个要${target.n}！`);sfx.bad();}
-    else sfx.dab();
+    else{sfx.dab();
+      if(evo('paint'))C.nails.forEach((m,j)=>{const tg=C.paint.t[j];if(j!==best&&tg===M.color&&m.paint!==tg.c){m.paint=tg.c;const q=TIPS[j];for(let i=0;i<5;i++)PS.push({k:'spark',x:q[0],y:q[1]-10,vx:(Math.random()-.5)*90,vy:-40-Math.random()*50,life:.7,max:.7,r:4,c:tg.c});}});}
   }
   const ok=C.nails.filter((n,i)=>C.paint.t[i]?n.paint===C.paint.t[i].c:!n.paint).length;progress(ok/TIPS.length);
   if(ok===TIPS.length)finish('paint',Math.max(.3,1-.15*M.wrong));
@@ -1523,7 +1537,7 @@ function checkout(angry){
   C.done=true;M=null;Q=null;hold=false;scrubbing=false;peeling=false;$('swatches').hidden=true;closeChat();updateTray();
   if(C.boss){bossEnd(!angry);return;}
   const k=(C.has('picky')?1.3:1)*payK(S.day);
-  const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k*(1+.1*toolLv(s))):0}));
+  const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k*(1+TOOL_PAY[toolLv(s)])):0}));
   let sum=rows.reduce((a,r)=>a+r.amt,0);
   const undone=rows.filter(r=>r.q==null).length;
   const avg=rows.reduce((a,r)=>a+(r.q||0),0)/rows.length;
@@ -1601,15 +1615,16 @@ function showDayEnd(){
   <div class="btns"><button class="btn" id="shopBtn">升级工具</button></div>`);
   $('shopBtn').onclick=showShop;
 }
-let shopTab='tool';
+let shopTab='tool',shopEvo=null;
 function showShop(){
   const cap=chOf(S.day),sc=$('panel').scrollTop;
   let body='';
   if(shopTab==='tool'){
     body=UPG.filter(u=>UNLOCK[u.svc]<=Math.max(S.day,1)).map(u=>{const lv=S.up[u.id]||0,max=lv>=TOOL_MAX,capped=!max&&lv>=cap,cost=max?0:upCost(u,lv);
       return `<div class="item"><b>${u.n} · ${u.lv.at(lv)}</b><button class="buy" data-u="${u.id}" ${max||capped?'disabled':S.coins<cost?'data-poor="1"':''}>${max?'已满级':capped?CH_NUM.at(cap+1)+'可升':'¥'+cost}</button>
-      <span class="d">${max?`${STEPS[u.svc].n}收费 +${lv*10}%`:`下一级：${u.lv.at(lv+1)} · ${u.d}，${STEPS[u.svc].n}收费 +10%`}</span><div class="pips">${Array.from({length:TOOL_MAX},(_,i)=>`<i class="${i<lv?'on':i<cap?'':'cap'}"></i>`).join('')}</div></div>`;}).join('')
-      +`<p class="muted">每章能升的等级：${['第一章最多 1 级','第二章最多 2 级','第三章最多 3 级'].join('，')}。</p>`;
+      <span class="d">${max?`<b class="evo">✨ 已进化 · ${u.evo}</b><br>${STEPS[u.svc].n}收费 +${TOOL_PAY[lv]*100}%`:`下一级：${u.lv.at(lv+1)} · ${lv+1>=TOOL_MAX?`<b class="evo">✨ 进化 · ${u.evo}</b>`:u.d}，${STEPS[u.svc].n}收费 +${Math.round(TOOL_PAY[lv+1]*100)}%`}</span><div class="pips">${Array.from({length:TOOL_MAX},(_,i)=>`<i class="${i<lv?'on':i<cap?'':'cap'}"></i>`).join('')}</div></div>`;}).join('')
+      +`<p class="muted">每章能升的等级：第一章 1 级，第二章 2 级，第三章 3 级（进化）。</p>`;
+    if(shopEvo){body=`<div class="evobanner"><b>✨ ${shopEvo.n}进化为「${shopEvo.lv.at(-1)}」！</b><span>${shopEvo.evo}</span></div>`+body;shopEvo=null;}
   }else body=decoShopHtml();
   open(`<h2>商店</h2><p class="muted">钱包 <b style="color:var(--sign);font-size:16px">¥${S.coins}</b></p>
   <div class="tabs"><button class="tabb ${shopTab==='tool'?'on':''}" data-tab="tool">工具</button><button class="tabb ${shopTab==='deco'?'on':''}" data-tab="deco">装修</button></div>
@@ -1618,7 +1633,7 @@ function showShop(){
   $('panel').scrollTop=sc;
   $('panel').onclick=e=>{const t=e.target.closest('.tabb');if(t){shopTab=t.dataset.tab;$('panel').scrollTop=0;showShop();return;}
     const b=e.target.closest('.buy');if(!b||b.disabled)return;
-    if(b.dataset.u){const u=UPG.find(x=>x.id===b.dataset.u),c=upCost(u,S.up[u.id]||0);if(S.coins<c){poorBuy(b);return;}S.coins-=c;S.up[u.id]=(S.up[u.id]||0)+1;}
+    if(b.dataset.u){const u=UPG.find(x=>x.id===b.dataset.u),c=upCost(u,S.up[u.id]||0);if(S.coins<c){poorBuy(b);return;}S.coins-=c;S.up[u.id]=(S.up[u.id]||0)+1;if(S.up[u.id]>=TOOL_MAX){shopEvo=u;setTimeout(()=>sfx.fanfare(),120);$('panel').scrollTop=0;}}
     else if(b.dataset.deco){const d=DECOS.find(x=>x.id===b.dataset.deco);if(!d||S.deco[d.id])return;if(S.coins<d.price){poorBuy(b);return;}S.coins-=d.price;S.deco[d.id]=1;}
     save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=()=>{$('panel').onclick=null;startDay();};
@@ -1853,7 +1868,7 @@ const SVC_LAYERS=['fish','wax','moxa','art','mask'];
 SVC.mask={
   how:'按住在脚底抹匀绿泥膜，把整只脚盖满',
   init(on){clearLayer(msc);},
-  start(){clearLayer(msc);return{phase:'smear',cov:0,mt:0,dirty:false,dry:0,need:2.2-.4*toolLv('mask'),pokes:0,pull:0,pulling:false,sy:0,smearing:false,rip:0,tab:{x:158,y:349}};},
+  start(){clearLayer(msc);return{phase:'smear',cov:0,mt:0,dirty:false,dry:0,need:evo('mask')?.4:2.2-.45*toolLv('mask'),pokes:0,pull:0,pulling:false,sy:0,smearing:false,rip:0,tab:{x:158,y:349}};},
   dab(x0,y0,x1,y1){msc.setTransform(DS,0,0,DS,0,0);msc.globalCompositeOperation='source-over';msc.lineCap='round';msc.strokeStyle='#7fae5a';msc.lineWidth=26+5*toolLv('mask');msc.beginPath();msc.moveTo(x0,y0);msc.lineTo(x1,y1);msc.stroke();
     msc.fillStyle='rgba(165,205,120,.7)';for(let i=0;i<2;i++){msc.beginPath();msc.arc(x1+(Math.random()-.5)*20,y1+(Math.random()-.5)*20,2+Math.random()*4,0,TAU);msc.fill();}
     clipFoot(msc);M.dirty=true;},
@@ -1871,7 +1886,7 @@ SVC.mask={
     setTimeout(()=>{if(C&&!C.done){setFace('bliss',1.4);say(pick(['啪！好爽！','脚底像剥了壳的鸡蛋！','舒服，滑溜溜的。']));}},450);
     for(let i=0;i<14;i++)PS.push({k:'drop',x:100+Math.random()*120,y:180+Math.random()*160,vx:(Math.random()-.5)*120,vy:-120-Math.random()*80,life:.9,max:.9,r:2+Math.random()*3,c:'#9cc27a'});},
   update(dt){
-    if(M.phase==='smear'){M.mt-=dt;if(M.dirty&&M.mt<=0){M.mt=.15;M.dirty=false;M.cov=countCanvas(MSK)/FOOTPX;progress(M.cov/.88);if(M.cov>=.88){M.phase='dry';M.smearing=false;setInstr('泥膜正在变干，别碰它，等它裂开');say('凉凉的，好舒服～');}}}
+    if(M.phase==='smear'){M.mt-=dt;if(M.dirty&&M.mt<=0){M.mt=.15;M.dirty=false;M.cov=countCanvas(MSK)/FOOTPX;const mth=evo('mask')?.7:.88;progress(M.cov/mth);if(M.cov>=mth){M.phase='dry';M.smearing=false;setInstr('泥膜正在变干，别碰它，等它裂开');say('凉凉的，好舒服～');}}}
     else if(M.phase==='dry'){M.dry+=dt;progress(M.dry/M.need);setFace('bliss',.2);
       msc.setTransform(1,0,0,1,0,0);msc.globalCompositeOperation='source-atop';msc.fillStyle=`rgba(214,222,170,${dt*.9})`;msc.fillRect(0,0,MSK.width,MSK.height);
       if(Math.random()<dt*7){msc.setTransform(DS,0,0,DS,0,0);msc.strokeStyle='rgba(110,120,70,.6)';msc.lineWidth=1;let x=90+Math.random()*130,y=160+Math.random()*180;msc.beginPath();msc.moveTo(x,y);for(let k=0;k<4;k++){x+=(Math.random()-.5)*14;y+=(Math.random()-.5)*14;msc.lineTo(x,y);}msc.stroke();}
@@ -1930,7 +1945,7 @@ SVC.fish={
       else{f.vx*=.95;f.vy*=.95;}
       f.x+=f.vx*dt;f.y+=f.vy*dt;f.ph+=dt*(8+Math.hypot(f.vx,f.vy)*.05);
     }
-    if(!M.big){M.bigT-=dt;if(M.bigT<=0&&left.length){const side=Math.random()<.5?-1:1,tg=pick(left);M.big={x:side<0?40:290,y:190+Math.random()*130,tx:tg.x,ty:tg.y,state:'come',t:0,vx:0,ph:0};M.bigT=Math.max(2.6,5.2-(S.day-13)*.25)+Math.random()*1.5;tone(160,120,.2,'sawtooth',.05);}}
+    if(!M.big){if(!evo('fish'))M.bigT-=dt;if(M.bigT<=0&&left.length){const side=Math.random()<.5?-1:1,tg=pick(left);M.big={x:side<0?40:290,y:190+Math.random()*130,tx:tg.x,ty:tg.y,state:'come',t:0,vx:0,ph:0};M.bigT=Math.max(2.6,5.2-(S.day-13)*.25)+Math.random()*1.5;tone(160,120,.2,'sawtooth',.05);}}
     else{const b=M.big;b.ph+=dt*10;
       if(b.state==='come'){const dx=b.tx-b.x,dy=b.ty-b.y,d=Math.hypot(dx,dy);if(d>6){b.x+=dx/d*90*dt;b.y+=dy/d*90*dt;}else{b.state='bite';b.t=0;}}
       else if(b.state==='bite'){b.t+=dt;if(b.t>.5){M.bites++;C.pat-=8;setFace('ouch',1);shake=.4;sfx.bad();say(pick(['哎哟！这条大鱼啄得好用力！','大鱼太调皮啦！']));addFT('啄疼了',b.x,b.y-18,'#ff8a80',15);b.state='leave';b.vx=(b.x<158?-1:1)*200;}}
@@ -1966,8 +1981,8 @@ SVC.wax={
     M.smoothing=p;
   },
   move(p,lp,moved){const s=M.smoothing;if(!s||s.state!=='strip')return;
-    if(Math.hypot(p[0]-s.x,p[1]-s.y)<s.r+18&&moved>.8){s.smooth+=moved*.014;if(bubT<=0){noise(.04,.08,1400);bubT=.07;}
-      if(s.smooth>=1){s.state='ready';M.smoothing=null;M.tm={p:s,pos:0,dir:1,lo:.6-.02*toolLv('wax'),hi:.82+.05*toolLv('wax'),sp:.95+Math.min(.6,Math.max(0,S.day-15)*.07)};setInstr('指针走到绿区时点一下，一把撕下来！');sfx.tap();}}},
+    if(Math.hypot(p[0]-s.x,p[1]-s.y)<s.r+18&&moved>.8){s.smooth+=moved*.014*(1+.3*toolLv('wax'));if(bubT<=0){noise(.04,.08,1400);bubT=.07;}
+      if(s.smooth>=1){s.state='ready';M.smoothing=null;M.tm={p:s,pos:0,dir:1,lo:evo('wax')?.3:.6-.04*toolLv('wax'),hi:evo('wax')?.97:.82+.05*toolLv('wax'),sp:.95+Math.min(.6,Math.max(0,S.day-15)*.07)};setInstr('指针走到绿区时点一下，一把撕下来！');sfx.tap();}}},
   up(){M.smoothing=null;},
   rip(p,ok){M.tm=null;
     if(ok){p.state='done';p.flush=1;noise(.18,.4,1600);tone(900,300,.15,'square',.05);setFace('ouch',.7);shake=.25;addFT('嘶啦！',p.x,p.y-p.r-8,'#ffffff',18);
@@ -2008,7 +2023,7 @@ SVC.wax={
 SVC.moxa={
   how:'点发光的穴位扣上火罐，罐子变绿时点它取下；放太久会烫',
   init(on){C.marks=[];},
-  start(){const n=S.day>=20?4:3,pts=POINTS.slice().sort(()=>Math.random()-.5).slice(0,n).map(p=>({x:p.x,y:p.y,n:p.n,state:'glow',t:0}));return{pts,overs:0,early:0,need:2.4,win:1.8+.5*toolLv('moxa')};},
+  start(){const n=S.day>=20?4:3,pts=POINTS.slice().sort(()=>Math.random()-.5).slice(0,n).map(p=>({x:p.x,y:p.y,n:p.n,state:'glow',t:0}));return{pts,overs:0,early:0,need:2.4-.3*toolLv('moxa'),win:evo('moxa')?99:1.8+.5*toolLv('moxa')};},
   down(x,y){const p=M.pts.find(q=>q.state!=='done'&&Math.hypot(x-q.x,y-q.y)<26);if(!p)return;
     if(p.state==='glow'){p.state='cup';p.t=0;tone(220,420,.12,'sine',.08);tone(2200,2200,.25,'sine',.035);addFT('啵',p.x,p.y-26,'#ffffff',14);setFace('happy',.5);}
     else if(p.state==='ready'){p.state='done';C.marks.push({x:p.x,y:p.y,dark:0});sfx.suck();sfx.perfect();addFT(p.n+' · 正好',p.x,p.y-28,'#f5c95c',14);setFace('bliss',1);for(let i=0;i<4;i++)PS.push({k:'heart',x:p.x,y:p.y,vx:(Math.random()-.5)*60,vy:-40-Math.random()*40,life:1,max:1,r:10});this.check();}
@@ -2050,7 +2065,7 @@ SVC.art={
   down(x,y){M.drawing=true;this.ink(x,y,x,y);},
   move(p,lp){if(M.drawing)this.ink(lp[0],lp[1],p[0],p[1]);},
   up(){M.drawing=false;},
-  update(){const A=C.art,k=M.got/A.pts.length;progress(k/.85);if(k>=.85&&!M.fin){M.fin=true;M.drawing=false;sfx.ding();setFace('bliss',1.2);say(pick(['好看！我要拍照发给朋友。','这个'+A.n+'真精致！']));setTimeout(()=>{if(M&&M.type==='art')finish('art',Math.max(.4,1-.1*M.spills));},500);}},
+  update(){const A=C.art,k=M.got/A.pts.length,ath=evo('art')?.7:.85;progress(k/ath);if(k>=ath&&!M.fin){M.fin=true;M.drawing=false;if(evo('art')&&k<.99){arc.setTransform(DS,0,0,DS,0,0);arc.strokeStyle=A.col;arc.lineWidth=5.5;arc.lineCap=arc.lineJoin='round';arc.beginPath();A.pts.forEach((p,i)=>i?arc.lineTo(p.x,p.y):arc.moveTo(p.x,p.y));if(!A.open)arc.closePath();arc.stroke();clipFoot(arc);addFT('神笔补完',160,200,'#f5c95c',16);}sfx.ding();setFace('bliss',1.2);say(pick(['好看！我要拍照发给朋友。','这个'+A.n+'真精致！']));setTimeout(()=>{if(M&&M.type==='art')finish('art',Math.max(.4,1-.1*M.spills));},500);}},
   layer(c){if(C.art&&(C.q.art!=null||M&&M.type==='art'))c.drawImage(ARTC,0,0,W,H);},
   draw(c,t){const A=C.art,path=()=>{c.beginPath();A.pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));if(!A.open)c.closePath();};
     c.lineCap='round';c.lineWidth=14;c.strokeStyle='rgba(255,255,255,.16)';path();c.stroke();
@@ -2502,9 +2517,9 @@ function update(dt,t){
     if(SVC[M.type])SVC[M.type].update(dt,t);
     else if(M.type==='soak'){
       const [lo,hi]=soakZone();
-      M.T=clamp(M.T+(hold?15:-(7+S.day*.4))*dt,22,58);
+      M.T=clamp(M.T+(hold?15:-(7+S.day*.4)*(evo('soak')?.25:1))*dt,22,58);
       if(K.gust){M.gustT-=dt;if(M.gustT<=0){M.gustT=3+Math.random()*4;M.T=Math.max(22,M.T-5);addFT('一阵凉风',300,150,'#cde8f2',16,1);}}
-      if(M.T>=lo&&M.T<=hi){M.prog+=dt;setFace('bliss',.25);if(!M.saidB){M.saidB=true;say(pick(LINES.bliss));}}
+      if(M.T>=lo&&M.T<=hi){M.prog+=dt*(1+.2*toolLv('soak'));setFace('bliss',.25);if(!M.saidB){M.saidB=true;say(pick(LINES.bliss));}}
       else if(M.T>hi+2){M.over+=dt;C.pat-=9*dt;setFace('hot',.25);shake=.12;if(Math.random()<dt*10)PS.push({k:'steam',s:1,x:160+Math.random()*60,y:60,vx:(Math.random()-.5)*20,vy:-40,life:1,max:1,r:5});M.hotT-=dt;if(M.hotT<=0){M.hotT=2.5;say(pick(LINES.hot));}}
       else if(M.T<lo-4){setFace('shiver',.25);if(!M.saidC){M.saidC=true;say(pick(LINES.cold));}}
       if(C.herb&&!M.herb&&M.prog>M.need*.9){M.prog=M.need*.9;if(!M.capHint){M.capHint=true;flashInstr(`别忘了放${C.herb.n}！点右上角`);say(`${C.herb.n}呢？我点了的。`);}}
@@ -2513,7 +2528,7 @@ function update(dt,t){
       progress(M.prog/M.need);
       if(M.prog>=M.need)finish('soak',clamp(1-M.over*.2-M.herbWrong*.15,.4,1));
     }else if(M.type==='peel'){
-      M.mt-=dt;if(M.dirty&&M.mt<=0){M.mt=.12;M.dirty=false;let pc=peelCounts();if(C.patches.some(q=>!q.pop&&pc.per[C.patches.indexOf(q)]/q.px0<.45)){C.patches.forEach((q,i)=>{if(!q.pop&&pc.per[i]/q.px0<.45)popPatch(q);});pc=peelCounts();}M.clean=1-pc.total/peelInit;progress(M.clean/.9);if(M.clean>=.9){curlDrop();peeling=false;finish('peel',Math.max(.4,1-.12*M.bad));}}
+      M.mt-=dt;if(M.dirty&&M.mt<=0){M.mt=.12;M.dirty=false;let pc=peelCounts();const pth=evo('peel')?.88:.45+.08*toolLv('peel');if(C.patches.some(q=>!q.pop&&pc.per[C.patches.indexOf(q)]/q.px0<pth)){C.patches.forEach((q,i)=>{if(!q.pop&&pc.per[i]/q.px0<pth)popPatch(q);});pc=peelCounts();}M.clean=1-pc.total/peelInit;progress(M.clean/.9);if(M.clean>=.9){curlDrop();peeling=false;finish('peel',Math.max(.4,1-.12*M.bad));}}
     }else if(M.type==='scrub'){
       M.mt-=dt;M.tk=Math.max(0,M.tk-dt*.35);
       if(M.dirty&&M.mt<=0){M.mt=.18;M.dirty=false;M.clean=1-countDirt()/dirtInit;
