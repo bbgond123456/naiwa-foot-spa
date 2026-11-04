@@ -1816,7 +1816,7 @@ const HINTS={
   fish:{text:'<b>鱼疗</b>：小鱼会自己把脚啄干净。<b>点小泡泡</b>能把鱼引过去；调皮的<b>大鱼</b>出现就点它赶走。',gesture:'tap',pos:()=>{const f=C.flecks&&C.flecks.find(f=>f.a>0);return f?[f.x,f.y]:null;}},
   wax:{text:'<b>脱脚毛</b>：点有脚毛的地方<b>贴蜡条</b>，来回<b>抹平</b>，指针走到<b>绿区</b>时点一下撕掉。',gesture:'tap',pos:()=>{const h=C.hair&&C.hair.find(h=>h.state==='hair');return h?[h.x,h.y]:null;}},
   moxa:{text:'<b>拔罐</b>：点<b>发光的穴位</b>扣上火罐，罐子<b>变绿</b>时点它取下。放太久会烫。',gesture:'tap',pos:()=>{const p=M&&M.pts&&M.pts.find(q=>q.state==='glow');return p?[p.x,p.y]:null;}},
-  art:{text:'<b>足部彩绘</b>：从<b>闪烁的点</b>开始，<b>沿着虚线</b>描出图案。画到线外会扣分。',gesture:'swipe',pos:()=>{const p=C.art&&C.art.pts.find(q=>!q.ok);return p?[p.x,p.y]:null;}},
+  art:{text:'<b>足部彩绘</b>：从<b>闪烁的点</b>开始，<b>沿着虚线</b>描出图案。手抖一点没关系，离线太远才算画歪。',gesture:'swipe',pos:()=>{const p=C.art&&C.art.pts.find(q=>!q.ok);return p?[p.x,p.y]:null;}},
   trim:{text:'<b>修脚</b>：点长出来的<b>指甲尖</b>剪掉。别点到脚趾肉上。',gesture:'tap',pos:()=>{const i=C.nails.findIndex(n=>n.long&&!n.clipped);return i<0?null:clawMid(i);}},
   peel:{text:'<b>去角质</b>：在白白的泡泡角质上<b>顺着箭头往下刮</b>，一块刮掉一半多就会<b>整块掉下来</b>。手指一直往上推会疼。',gesture:'down',pos:()=>{const p=C.patches[0];return p?[p.x,p.y-p.ry*.6]:null;}},
   massage:{text:'<b>足底按摩</b>：白圈会慢慢缩小，<b>缩到金圈上</b>时点那个穴位，越准越舒服。',gesture:'tap',pos:()=>{const nt=M&&M.seq[M.k];return nt?[nt.p.x,nt.p.y]:null;}},
@@ -2022,25 +2022,31 @@ SVC.moxa={
 
 /* 足部彩绘：沿虚线描图案 */
 const ART_PATTERNS={
-  heart:{n:'爱心',s:2.5,f:k=>{const t=k*TAU;return[16*Math.sin(t)**3,-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))];}},
-  star:{n:'星星',s:2.6,f:k=>{const i=Math.floor(k*10),f=k*10-i,P=j=>{const a=-Math.PI/2+j*Math.PI/5,r=j%2?7:17;return[Math.cos(a)*r,Math.sin(a)*r];},A=P(i),B=P((i+1)%10);return[A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f];}},
-  flower:{n:'小花',s:2.6,f:k=>{const t=k*TAU,r=10+7*Math.cos(5*t);return[Math.cos(t)*r,Math.sin(t)*r];}},
-  wave:{n:'波浪',s:2.4,open:true,f:k=>[(k-.5)*34,Math.sin(k*TAU*2)*7]}
+  heart:{n:'爱心',s:2.4,sy:3.1,f:k=>{const t=k*TAU;return[16*Math.sin(t)**3,-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))];}},
+  star:{n:'星星',s:2.3,sy:2.7,f:k=>{const i=Math.floor(k*10),f=k*10-i,P=j=>{const a=-Math.PI/2+j*Math.PI/5,r=j%2?10:17;return[Math.cos(a)*r,Math.sin(a)*r];},A=P(i),B=P((i+1)%10);return[A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f];}},
+  flower:{n:'小花',s:2.3,sy:2.7,f:k=>{const t=k*TAU,r=12+5*Math.cos(5*t);return[Math.cos(t)*r,Math.sin(t)*r];}},
+  wave:{n:'波浪',s:1,open:true,f:k=>[Math.sin(k*TAU*1.5)*15,(k-.5)*120]}
 };
 SVC.art={
   how:'从闪烁的点开始，沿着虚线描出图案',
-  init(on){clearLayer(arc);C.art=null;if(!on)return;const keys=S.day>=20?Object.keys(ART_PATTERNS):['heart','wave'],key=pick(keys),P=ART_PATTERNS[key],cx=160,cy=268,pts=[];for(let i=0;i<90;i++){const [x,y]=P.f(i/90);pts.push({x:cx+x*P.s,y:cy+y*P.s,ok:false});}C.art={key,n:P.n,open:!!P.open,pts,col:pick(['#c4302a','#2f6fb5','#b8860b'])};},
+  init(on){clearLayer(arc);C.art=null;if(!on)return;const keys=S.day>=20?Object.keys(ART_PATTERNS):['heart','wave'],key=pick(keys),P=ART_PATTERNS[key],cx=147,cy=262,pts=[];for(let i=0;i<90;i++){const [x,y]=P.f(i/90);pts.push({x:cx+x*P.s,y:cy+y*(P.sy||P.s),ok:false});}C.art={key,n:P.n,open:!!P.open,pts,col:pick(['#c4302a','#2f6fb5','#b8860b'])};},
   start(){return{drawing:false,spill:0,spills:0,got:0};},
-  ink(x0,y0,x1,y1){const A=C.art;arc.setTransform(DS,0,0,DS,0,0);arc.globalCompositeOperation='source-over';arc.lineCap='round';arc.lineJoin='round';arc.strokeStyle=A.col;arc.lineWidth=5;arc.beginPath();arc.moveTo(x0,y0);arc.lineTo(x1,y1);arc.stroke();clipFoot(arc);
-    let near=1e9;for(const p of A.pts){const d=Math.hypot(p.x-x1,p.y-y1);if(d<near)near=d;if(!p.ok&&d<10+3*toolLv('art')){p.ok=true;M.got++;}}
-    if(near>15+3*toolLv('art')){M.spill+=Math.hypot(x1-x0,y1-y0);if(M.spill>45){M.spill=0;M.spills++;C.pat-=4;setFace('angry',.8);sfx.bad();say('画歪了！');addFT('画歪了',x1,y1-12,'#ff8a80',14);}}
+  ink(x0,y0,x1,y1){const A=C.art,L=toolLv('art'),N=A.pts.length;arc.setTransform(DS,0,0,DS,0,0);arc.globalCompositeOperation='source-over';arc.lineCap='round';arc.lineJoin='round';arc.strokeStyle=arc.fillStyle=A.col;arc.lineWidth=5.5;
+    let near=1e9;const seg=(a,b)=>{arc.beginPath();arc.moveTo(a.x,a.y);arc.lineTo(b.x,b.y);arc.stroke();};
+    A.pts.forEach((p,i)=>{const d=Math.hypot(p.x-x1,p.y-y1);if(d<near)near=d;if(!p.ok&&d<17+3*L){p.ok=true;M.got++;
+      const a=A.pts[(i-1+N)%N],b=A.pts[(i+1)%N];circ(arc,p.x,p.y,2.75);if(a.ok&&(i>0||!A.open))seg(a,p);if(b.ok&&(i<N-1||!A.open))seg(p,b);}});
+    const off=near>26+3*L;if(off){arc.globalAlpha=.55;arc.lineWidth=4;arc.beginPath();arc.moveTo(x0,y0);arc.lineTo(x1,y1);arc.stroke();arc.globalAlpha=1;}
+    clipFoot(arc);
+    if(off){M.spill+=Math.hypot(x1-x0,y1-y0);if(M.spill>70){M.spill=0;M.spills++;C.pat-=4;setFace('angry',.8);sfx.bad();say('画歪了！');addFT('画歪了',x1,y1-12,'#ff8a80',14);}}
     else if(bubT<=0){tone(500+Math.random()*300,600,.04,'sine',.03);bubT=.08;}},
   down(x,y){M.drawing=true;this.ink(x,y,x,y);},
   move(p,lp){if(M.drawing)this.ink(lp[0],lp[1],p[0],p[1]);},
   up(){M.drawing=false;},
-  update(){const A=C.art,k=M.got/A.pts.length;progress(k/.9);if(k>=.9&&!M.fin){M.fin=true;M.drawing=false;sfx.ding();setFace('bliss',1.2);say(pick(['好看！我要拍照发给朋友。','这个'+A.n+'真精致！']));setTimeout(()=>{if(M&&M.type==='art')finish('art',Math.max(.4,1-.1*M.spills));},500);}},
+  update(){const A=C.art,k=M.got/A.pts.length;progress(k/.85);if(k>=.85&&!M.fin){M.fin=true;M.drawing=false;sfx.ding();setFace('bliss',1.2);say(pick(['好看！我要拍照发给朋友。','这个'+A.n+'真精致！']));setTimeout(()=>{if(M&&M.type==='art')finish('art',Math.max(.4,1-.1*M.spills));},500);}},
   layer(c){if(C.art&&(C.q.art!=null||M&&M.type==='art'))c.drawImage(ARTC,0,0,W,H);},
-  draw(c,t){const A=C.art;c.setLineDash([4,5]);c.lineWidth=2.2;c.strokeStyle=`rgba(255,255,255,${.65+.3*Math.sin(t*4)})`;c.beginPath();A.pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));if(!A.open)c.closePath();c.stroke();c.setLineDash([]);
+  draw(c,t){const A=C.art,path=()=>{c.beginPath();A.pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));if(!A.open)c.closePath();};
+    c.lineCap='round';c.lineWidth=14;c.strokeStyle='rgba(255,255,255,.16)';path();c.stroke();
+    c.setLineDash([5,6]);c.lineWidth=4.5;c.strokeStyle='rgba(90,50,30,.35)';path();c.stroke();c.lineWidth=3;c.strokeStyle=`rgba(255,255,255,${.7+.25*Math.sin(t*4)})`;path();c.stroke();c.setLineDash([]);
     const s=A.pts.find(p=>!p.ok);if(s){c.fillStyle=A.col;circ(c,s.x,s.y,5);c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(s.x,s.y,8+2*Math.sin(t*6),0,TAU);c.stroke();}}
 };
 
