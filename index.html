@@ -1099,14 +1099,23 @@ function buildPeel(n){
   const spots=[[V(825,1830),38,26],[V(806,1338),40,20],[V(1010,1450),17,30]];
   plc.setTransform(DS,0,0,DS,0,0);
   for(let i=0;i<n;i++){const [[x,y],rx,ry]=spots.at(i),seed=Math.random()*10;C.patches.push({x,y,rx,ry});
-    plc.globalCompositeOperation='source-over';plc.beginPath();
-    for(let k=0;k<24;k++){const a=k/24*TAU,f=.94+.08*Math.sin(seed+k*1.1);plc.lineTo(x+Math.cos(a)*rx*f,y+Math.sin(a)*ry*f);}
-    plc.closePath();
-    const g=plc.createRadialGradient(x-rx*.3,y-ry*.4,2,x,y,Math.max(rx,ry));g.addColorStop(0,'rgba(255,254,249,.97)');g.addColorStop(.6,'rgba(252,244,229,.95)');g.addColorStop(1,'rgba(243,230,207,.92)');
-    plc.save();plc.shadowColor='rgba(170,130,80,.2)';plc.shadowBlur=5;plc.shadowOffsetY=1;plc.fillStyle=g;plc.fill();plc.restore();plc.strokeStyle='rgba(255,255,255,.9)';plc.lineWidth=1.4;plc.stroke();plc.setLineDash([]);
+    /* 角质画成一团软软的泡泡：中间一块椭圆 + 边上一圈小圆鼓包，像搓出来的肥皂泡沫 */
+    const m=Math.min(rx,ry),blobs=[[x,y,rx*.82,ry*.82,true]];
+    for(let k=0;k<14;k++){const a=k/14*TAU+seed,rr=m*(.3+.08*Math.sin(seed*3+k*1.7));blobs.push([x+Math.cos(a)*(rx-rr*.75),y+Math.sin(a)*(ry-rr*.75),rr,rr,false]);}
+    const shape=(b)=>{plc.beginPath();plc.ellipse(b[0],b[1],b[2],b[3],0,0,TAU);};
+    plc.globalCompositeOperation='source-over';
+    plc.save();plc.shadowColor='rgba(110,160,200,.28)';plc.shadowBlur=6;plc.shadowOffsetY=1.5;plc.fillStyle='rgba(176,212,236,.95)';
+    for(const b of blobs){shape(b);plc.fill();}plc.restore();
+    plc.fillStyle='rgba(176,212,236,.95)';for(const b of blobs){plc.beginPath();plc.ellipse(b[0],b[1],b[2]+1.2,b[3]+1.2,0,0,TAU);plc.fill();}
+    const g=plc.createLinearGradient(0,y-ry,0,y+ry);g.addColorStop(0,'#ffffff');g.addColorStop(.65,'#f6fbff');g.addColorStop(1,'#e2f1fb');
+    plc.fillStyle=g;for(const b of blobs){shape(b);plc.fill();}
     plc.globalCompositeOperation='source-atop';
-    for(let k=0;k<26;k++){const px=x-rx+Math.random()*rx*2,py=y-ry+Math.random()*ry*2;plc.fillStyle=pick(['rgba(255,255,255,.95)','rgba(255,250,236,.9)','rgba(232,214,186,.55)']);plc.beginPath();plc.arc(px,py,.7+Math.random()*1.3,0,TAU);plc.fill();}
-    plc.fillStyle='#fff';for(let k=0;k<5;k++){const px=x-rx*.7+Math.random()*rx*1.4,py=y-ry*.6+Math.random()*ry*1.2,r=1.5+Math.random()*1.5;plc.beginPath();for(let j=0;j<8;j++){const a=j*Math.PI/4,rr=j%2?r*.35:r*1.6;plc.lineTo(px+Math.cos(a)*rr,py+Math.sin(a)*rr);}plc.fill();}}
+    for(let k=0;k<9;k++){const a=Math.random()*TAU,d=Math.sqrt(Math.random())*.75,bx=x+Math.cos(a)*rx*d,by=y+Math.sin(a)*ry*d,br=1.6+Math.random()*3.2;
+      plc.fillStyle='rgba(255,255,255,.55)';plc.strokeStyle='rgba(150,198,228,.75)';plc.lineWidth=.9;plc.beginPath();plc.arc(bx,by,br,0,TAU);plc.fill();plc.stroke();
+      plc.fillStyle='#fff';plc.beginPath();plc.arc(bx-br*.35,by-br*.35,br*.3,0,TAU);plc.fill();}
+    for(let k=0;k<3;k++){const px=x-rx*.5+Math.random()*rx,py=y-ry*.5+Math.random()*ry,r=1.4+Math.random()*1.4;plc.fillStyle=pick(['#ffe9a8','#ffd6e6','#d9f0ff']);
+      plc.beginPath();for(let j2=0;j2<8;j2++){const a=j2*Math.PI/4,rr=j2%2?r*.35:r*1.7;plc.lineTo(px+Math.cos(a)*rr,py+Math.sin(a)*rr);}plc.fill();}
+  }
   plc.globalCompositeOperation='source-over';
   peelInit=Math.max(1,countCanvas(PL));
   const pc=peelCounts();C.patches.forEach((q,i)=>{q.px0=Math.max(1,pc.per[i]);q.pop=false;});
@@ -1794,7 +1803,7 @@ const HINTS={
   moxa:{text:'<b>拔罐</b>：点<b>发光的穴位</b>扣上火罐，罐子<b>变绿</b>时点它取下。放太久会烫。',gesture:'tap',pos:()=>{const p=M&&M.pts&&M.pts.find(q=>q.state==='glow');return p?[p.x,p.y]:null;}},
   art:{text:'<b>足部彩绘</b>：从<b>闪烁的点</b>开始，<b>沿着虚线</b>描出图案。画到线外会扣分。',gesture:'swipe',pos:()=>{const p=C.art&&C.art.pts.find(q=>!q.ok);return p?[p.x,p.y]:null;}},
   trim:{text:'<b>修脚</b>：点长出来的<b>指甲尖</b>剪掉。别点到脚趾肉上。',gesture:'tap',pos:()=>{const i=C.nails.findIndex(n=>n.long&&!n.clipped);return i<0?null:clawMid(i);}},
-  peel:{text:'<b>去角质</b>：在奶白色的角质上<b>顺着箭头往下刮</b>，一块刮掉一半多就会<b>整块掉下来</b>。手指一直往上推会疼。',gesture:'down',pos:()=>{const p=C.patches[0];return p?[p.x,p.y-p.ry*.6]:null;}},
+  peel:{text:'<b>去角质</b>：在白白的泡泡角质上<b>顺着箭头往下刮</b>，一块刮掉一半多就会<b>整块掉下来</b>。手指一直往上推会疼。',gesture:'down',pos:()=>{const p=C.patches[0];return p?[p.x,p.y-p.ry*.6]:null;}},
   massage:{text:'<b>足底按摩</b>：白圈会慢慢缩小，<b>缩到金圈上</b>时点那个穴位，越准越舒服。',gesture:'tap',pos:()=>{const nt=M&&M.seq[M.k];return nt?[nt.p.x,nt.p.y]:null;}},
   paint:{text:'<b>美甲</b>：照右上角卡片，<b>先点颜色</b>，再点对应的<b>脚趾</b>。涂错了用卸甲水擦掉。',gesture:'tap',target:'#swatches'}
 };
