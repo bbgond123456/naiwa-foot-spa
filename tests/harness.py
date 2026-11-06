@@ -42,8 +42,9 @@ def build(src=None, no_draw_switch=True):
     return out.as_uri()
 
 def save_state(**kw):
+    import datetime  # 每日红包按“今天已领”处理，测试不被弹窗打断
     st = dict(coins=0, day=1, up={}, deco={}, served=1, muted=True, best={}, tut=True,
-              chSeen={}, metVip={}, seen=ALL_SEEN)
+              chSeen={}, metVip={}, seen=ALL_SEEN, lastOpen=datetime.date.today().strftime('%a %b %d %Y'))
     st.update(kw)
     return st
 
