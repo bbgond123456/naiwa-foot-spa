@@ -156,7 +156,8 @@ class Player:
                 q = gauss_clip(rng, P['mu'] - DIFF.get(step, 0) + .02 * tl, P['sd'], .3, 1)
                 dur = step_time(step, lv, P, rng)
                 end = now + dur * 1000
-                pg.evaluate(f"(()=>{{const m=__t.M;__t.M={{type:'_sim',t0:m.t0}};}})()")
+                if not pg.evaluate(f"(()=>{{const m=__t.M;if(!m)return false;__t.M={{type:'_sim',t0:m.t0}};return true;}})()"):
+                    continue  # 客人刚好气走，M 已清空
                 self.sim = dict(step=step, end=end, q=round(q, 3))
                 n = 0
                 lam = P['err']
