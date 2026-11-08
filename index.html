@@ -534,7 +534,7 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 (()=>{
 const W=360,H=480,TAU=Math.PI*2,DS=2;
 /* 调试工具只在网址带 ?debug 时出现，正式包里玩家看不到 */
-const DEV=/[?&]debug\b/.test(location.search);
+let DEV=/[?&]debug\b/.test(location.search);
 /* 埋点：先排进队列；接平台 SDK 时给 window.NAIWA_TRACK 赋一个函数即可 */
 const EVQ=window.__naiwaEvents=[];
 function track(ev,props){const e=Object.assign({ev,t:Date.now()},props||{});EVQ.push(e);if(EVQ.length>500)EVQ.shift();try{window.NAIWA_TRACK&&window.NAIWA_TRACK(ev,e);}catch(_){}}
@@ -647,6 +647,8 @@ function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.up){co
   let refund=0;for(const [k,b] of [['aroma',90],['deco',150]]){const n=o.up[k]||0;for(let i=0;i<n;i++)refund+=Math.round(b*Math.pow(1.75,i)/10)*10;delete o.up[k];}
   for(const u of UPG)o.up[u.id]=Math.min(TIERS,o.up[u.id]||0);if(refund){o.coins+=refund;o.refund=refund;}return o;}}catch(e){}return def();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+/* 连点左上角招牌 3 次（1.2 秒内）打开调试工具，本次打开有效 */
+{let n=0,t0=0;document.getElementById('signText').addEventListener('click',()=>{const t=performance.now();n=t-t0<1200?n+1:1;t0=t;if(n>=3&&!DEV){DEV=true;n=0;track('debug_on');flashInstr('调试工具已打开：在菜单里');}});}
 let S=load();if(S.realDay){S.day=S.realDay;delete S.realDay;}
 /* 旧存档：原来 3 级（进化）= 新的 5 档效率路线 */
 if(S.upV!==2){S.br=S.br||{};for(const k in S.up)if(S.up[k]>=3){S.up[k]=5;S.br[k]='A';}S.upV=2;}
