@@ -458,16 +458,30 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 .evobanner b{display:block;font-size:16px;color:#7a3a08}
 .evobanner span{font-size:13px;color:#6a4a20}
 
-/* 上线前修复：小屏顶栏、横屏提示、每日红包 */
+/* 上线前修复：小屏顶栏、横屏提示 */
 @media (max-width:340px){.sign{font-size:14px;padding:2px 5px 3px;letter-spacing:0}.chip{font-size:11px;padding:3px 5px}.icon-btn{width:30px;height:30px}.top{gap:3px}}
 #rotHint{display:none;position:fixed;inset:0;z-index:9000;background:rgba(22,58,53,.96);color:#fff3d6;flex-direction:column;align-items:center;justify-content:center;gap:10px;font:600 16px/1.5 system-ui,sans-serif;text-align:center}
 #rotHint b{font-size:42px}
 @media (orientation:landscape) and (max-height:500px) and (pointer:coarse){#rotHint{display:flex}}
-.daily{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.daily span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:9px;background:rgba(0,0,0,.06);font-size:18px;opacity:.55}
-.daily span b{font-size:11px}
-.daily span.on{opacity:1;background:#ffe9a8}
-.daily span.now{outline:2px solid #e0a72e;animation:stpop .5s cubic-bezier(.2,1.7,.4,1)}
+
+/* 工具升级 v2：路线 */
+.tool[data-lv^="⚡"]::after{background:linear-gradient(#bfe3ff,#5aa7e8);color:#0b2f52}
+.tool[data-lv^="💎"]::after{background:linear-gradient(#ffe38a,#e0a72e);color:#6a3a08}
+.shop .item.fork{display:block}
+.shop .item.fork>b{display:block}
+.shop .item.fork>.d{display:block;margin:2px 0 0}
+.shop .route{display:flex;gap:8px;align-items:center;margin:8px 0 0;padding:8px 10px;border-radius:10px;border:1.5px solid rgba(0,0,0,.12)}
+.shop .route.rA{background:rgba(90,167,232,.10);border-color:rgba(90,167,232,.55)}
+.shop .route.rB{background:rgba(224,167,46,.12);border-color:rgba(224,167,46,.6)}
+.shop .route>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:12.5px;line-height:1.4}
+.shop .route>div b{font-size:14px}
+.shop .route .con{color:#a4462e}
+.shop .route .buy{position:static;flex:none}
+.shop .rtag{font-size:11.5px;padding:1px 6px;border-radius:8px;vertical-align:2px;white-space:nowrap}
+.shop .rtag.rA{background:rgba(90,167,232,.18);color:#1d5b93}
+.shop .rtag.rB{background:rgba(224,167,46,.22);color:#7a4a08}
+.shop .pips i.fork{box-shadow:0 0 0 1.5px #e0a72e}
+.shop .swbtn{margin-top:6px;font:600 11.5px/1 inherit;padding:5px 8px;border-radius:8px;border:1px dashed rgba(0,0,0,.25);background:transparent;color:inherit;cursor:pointer}
 </style>
 
 <div id="app">
@@ -535,26 +549,61 @@ new ResizeObserver(()=>{resize();placeScene();}).observe(wrap);new ResizeObserve
 
 /* ---------- data ---------- */
 const STEPS={soak:{n:'泡脚',p:15},scrub:{n:'搓泥',p:25},peel:{n:'去角质',p:30},fish:{n:'鱼疗',p:45},wax:{n:'脱脚毛',p:45},mask:{n:'足膜',p:40},moxa:{n:'拔罐',p:55},art:{n:'足部彩绘',p:60},trim:{n:'修脚',p:30},massage:{n:'足底按摩',p:40},paint:{n:'蛙趾美甲',p:35}};
+/* 工具升级 v2：5 档，不按章节锁；第 3 档分两条路线
+   ⚡效率路线：手感继续变快，满级解锁进化技能；代价：收费加成低（最多 +40%）
+   💎品质路线：收费大涨（最多 +100%），满级「慢工细活」做这项时客人耐心不掉；代价：手感停在 2 档 */
 const UPG=[
-  {id:'kettle',svc:'soak',n:'泡脚桶',lv:['木桶','恒温桶','中药桶','温泉桶'],d:'绿区更宽，泡得更快',evo:'恒温：水几乎不会变凉'},
-  {id:'brush',svc:'scrub',n:'搓澡巾',lv:['毛巾','加厚巾','电动刷','火山石'],d:'一下搓得更宽，硬泥块更好搓',evo:'碎石：硬泥块一搓就碎'},
-  {id:'clip',svc:'trim',n:'指甲钳',lv:['普通钳','进口钳','修脚刀','修脚仪'],d:'更容易剪中，老茧锉得更快',evo:'连剪：剪一个，旁边的一起剪掉'},
-  {id:'blade',svc:'peel',n:'刮刀',lv:['小刮刀','宽刮刀','双刃刮刀','陶瓷刮刀'],d:'一刀更宽，泡泡块更早掉',evo:'一刀落：刮一下整块就掉'},
-  {id:'massage',svc:'massage',n:'推拿手法',lv:['入门','熟练','老师傅','大师'],d:'光圈缩得更慢',evo:'点穴大师：每次少按 2 个穴位'},
-  {id:'paint',svc:'paint',n:'甲油',lv:['杂牌甲油','光疗甲油','珠光甲油','宝石甲油'],d:'美甲卖得更贵',evo:'一刷全涂：同色的脚趾一下全涂好'},
-  {id:'mask',svc:'mask',n:'泥膜',lv:['普通泥膜','海藻泥膜','火山泥膜','黄金泥膜'],d:'抹得更宽，干得更快',evo:'速干：抹七成就够，几乎不用等'},
-  {id:'fish',svc:'fish',n:'鱼缸',lv:['小鱼缸','大鱼缸','温泉鱼缸','珊瑚鱼缸'],d:'多 2 条小鱼',evo:'乖鱼：调皮的大鱼不来捣乱'},
-  {id:'wax',svc:'wax',n:'蜡条',lv:['普通蜡条','蜂蜡条','玫瑰蜡条','无痛蜡条'],d:'抹得更快，撕的绿区更宽',evo:'无痛：绿区占满大半圈'},
-  {id:'moxa',svc:'moxa',n:'火罐',lv:['玻璃罐','竹罐','陶罐','温玉罐'],d:'变绿得更快，能多等一会儿',evo:'温玉：罐子不会烫伤客人'},
-  {id:'art',svc:'art',n:'画笔',lv:['普通画笔','细头画笔','金粉画笔','大师画笔'],d:'描线容错更大',evo:'神笔：描到七成就自动补完'}
+  {id:'kettle',svc:'soak',n:'泡脚桶',lv:['木桶','恒温桶','电热桶'],d:'绿区更宽，泡得更快',
+   A:{lv:['涡轮按摩桶','等离子速热桶','量子恒温泡脚桶'],skill:'量子恒温：水几乎不会变凉'},
+   B:{lv:['中药桶','玫瑰温泉桶','御用金汤桶']}},
+  {id:'brush',svc:'scrub',n:'搓澡巾',lv:['毛巾','加厚巾','搓澡手套'],d:'一下搓得更宽，硬泥块更好搓',
+   A:{lv:['电动刷','角磨机','电钻'],skill:'电钻：硬泥块一碰就碎'},
+   B:{lv:['丝瓜络','蚕丝搓巾','天鹅绒搓巾']}},
+  {id:'clip',svc:'trim',n:'指甲钳',lv:['普通钳','进口钳','弯头钳'],d:'更容易剪中，老茧锉得更快',
+   A:{lv:['电动修甲器','激光修脚仪','等离子切割刀'],skill:'连剪：剪一个，旁边的一起剪掉'},
+   B:{lv:['修脚刀','老师傅祖传刀','御用金修脚刀']}},
+  {id:'blade',svc:'peel',n:'刮刀',lv:['小刮刀','宽刮刀','双刃刮刀'],d:'一刀更宽，泡泡块更早掉',
+   A:{lv:['电动刨','铲车铲','推土机铲'],skill:'一铲落：刮一下整块就掉'},
+   B:{lv:['陶瓷刮刀','玉石刮板','和田玉刮板']}},
+  {id:'massage',svc:'massage',n:'推拿手法',lv:['入门','熟练','老手'],d:'光圈缩得更慢',
+   A:{lv:['按摩枪','震动按摩椅','机械臂推拿'],skill:'机械臂：每次少按 2 个穴位'},
+   B:{lv:['老师傅','太极推拿','宫廷御医手法']}},
+  {id:'paint',svc:'paint',n:'甲油',lv:['杂牌甲油','光疗甲油','亮片甲油'],d:'美甲卖得更贵',
+   A:{lv:['喷枪甲油','3D 打印甲','一键美甲机'],skill:'一键美甲：同色的脚趾一下全涂好'},
+   B:{lv:['珠光甲油','宝石甲油','钻石甲油']}},
+  {id:'mask',svc:'mask',n:'泥膜',lv:['普通泥膜','海藻泥膜','绿茶泥膜'],d:'抹得更宽，干得更快',
+   A:{lv:['速干泥膜','喷涂泥膜','光固化泥膜'],skill:'光固化：抹七成就够，几乎不用等'},
+   B:{lv:['火山泥膜','黄金泥膜','鱼子酱泥膜']}},
+  {id:'fish',svc:'fish',n:'鱼缸',lv:['小鱼缸','大鱼缸','双层鱼缸'],d:'多 2 条小鱼',
+   A:{lv:['饿鱼缸','食人鱼缸','大白鲨缸'],skill:'镇缸大白鲨：调皮的大鱼不敢来'},
+   B:{lv:['温泉鱼缸','珊瑚鱼缸','锦鲤鱼缸']}},
+  {id:'wax',svc:'wax',n:'蜡条',lv:['普通蜡条','蜂蜡条','加宽蜡条'],d:'抹得更快，撕的绿区更宽',
+   A:{lv:['胶带','工业胶带','魔术贴'],skill:'魔术贴：绿区占满大半圈'},
+   B:{lv:['玫瑰蜡条','无痛蜡条','蜂王蜜蜡']}},
+  {id:'moxa',svc:'moxa',n:'火罐',lv:['玻璃罐','竹罐','厚底罐'],d:'变绿得更快，能多等一会儿',
+   A:{lv:['电热罐','微波罐','真空吸盘'],skill:'真空吸盘：罐子不会烫伤客人'},
+   B:{lv:['陶罐','温玉罐','羊脂玉罐']}},
+  {id:'art',svc:'art',n:'画笔',lv:['普通画笔','细头画笔','双头画笔'],d:'描线容错更大',
+   A:{lv:['马克笔','喷枪','印章机'],skill:'印章机：描到七成自动补完'},
+   B:{lv:['金粉画笔','狼毫笔','大师画笔']}}
 ];
+const ROUTE={A:{tag:'⚡ 效率',skill:u=>u.A.skill,pro:'手感继续变快，满级解锁进化技能',con:'收费最多只 +40%'},
+             B:{tag:'💎 品质',skill:()=>'慢工细活：做这项时客人耐心不掉',pro:'收费最多 +100%，满级「慢工细活」',con:'手感停在 2 档，不再变快'}};
 const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:380,fish:420,wax:460,moxa:500,art:550};
-const TOOL_MULT=[1,2.4,5],TOOL_MAX=3;
-/* 道具进化：每级收费 +20% / +45% / +80%，3 级解锁进化技能 */
-const TOOL_PAY=[0,.2,.45,.8];
-const upCost=(u,lv)=>Math.round(TOOL_BASE[u.svc]*TOOL_MULT.at(lv)/10)*10;
-const toolLv=svc=>{const u=UPG.find(t=>t.svc===svc);return u?(S.up[u.id]||0):0;};
-const evo=svc=>toolLv(svc)>=TOOL_MAX;
+const TIERS=5,FORK=2;                       // 0→1→2 公共，2→3 时选路线
+const TIER_MULT=[.4,.8,1.4,2.2,3.2];         // 从第 t 档升到 t+1 档的价格 × 基础价
+const POWER={A:[2.5,3,3],B:[2,2,2]};         // 手感档位（喂给各项目的手感公式）
+const PAY0=[0,.1,.2],PAY={A:[.25,.3,.4],B:[.45,.7,1]};
+const upCost=(u,t)=>Math.round(TOOL_BASE[u.svc]*TIER_MULT.at(t)/10)*10;
+const switchCost=u=>Math.round(TOOL_BASE[u.svc]*TIER_MULT.at(FORK)/10)*10;
+const upOf=svc=>UPG.find(t=>t.svc===svc);
+const tierOf=u=>u?Math.min(S.up[u.id]||0,TIERS):0;
+const brOf=u=>(S.br&&S.br[u.id])||'A';
+const tierName=(u,t)=>t<=FORK?u.lv.at(t):u[brOf(u)].lv.at(t-FORK-1);
+const toolLv=svc=>{const u=upOf(svc),t=tierOf(u);return t<=FORK?t:POWER[brOf(u)].at(t-FORK-1);};
+const payBonus=svc=>{const u=upOf(svc),t=tierOf(u);return t<=FORK?PAY0.at(t):PAY[brOf(u)].at(t-FORK-1);};
+const evo=svc=>{const u=upOf(svc);return tierOf(u)>=TIERS&&brOf(u)==='A';};
+const sig=svc=>{const u=upOf(svc);return!!u&&tierOf(u)>=TIERS&&brOf(u)==='B';};
 const NAMES=['呱太郎','蛙小美','老蛙头','阿呱','绿豆','呱呱姐','蛙大爷','荷叶仙','跳跳','小青','泥鳅哥','莲蓬','呱子','田鸡王'];
 const PALS=[
   {skin:'#a3d98f',sole:'#d4f0c2',web:'#bfe6a8',out:'#3d6a33',belly:'#ecf8dc',blush:'#f29a9a'},
@@ -596,9 +645,11 @@ const KEY='naiwa-footspa-v1';
 const def=()=>({coins:0,day:1,deco:{},up:{kettle:0,brush:0,clip:0,blade:0,massage:0,paint:0,mask:0,fish:0,wax:0,moxa:0,art:0},served:0,muted:false,best:{},tut:false,seen:{}});
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.up){const o=Object.assign(def(),s,{up:Object.assign(def().up,s.up),deco:Object.assign({},s.deco||{})});
   let refund=0;for(const [k,b] of [['aroma',90],['deco',150]]){const n=o.up[k]||0;for(let i=0;i<n;i++)refund+=Math.round(b*Math.pow(1.75,i)/10)*10;delete o.up[k];}
-  for(const u of UPG)o.up[u.id]=Math.min(TOOL_MAX,o.up[u.id]||0);if(refund){o.coins+=refund;o.refund=refund;}return o;}}catch(e){}return def();}
+  for(const u of UPG)o.up[u.id]=Math.min(TIERS,o.up[u.id]||0);if(refund){o.coins+=refund;o.refund=refund;}return o;}}catch(e){}return def();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 let S=load();if(S.realDay){S.day=S.realDay;delete S.realDay;}
+/* 旧存档：原来 3 级（进化）= 新的 5 档效率路线 */
+if(S.upV!==2){S.br=S.br||{};for(const k in S.up)if(S.up[k]>=3){S.up[k]=5;S.br[k]='A';}S.upV=2;}
 track('boot',{day:S.day});
 
 /* ---------- audio ---------- */
@@ -792,7 +843,7 @@ function buildDirt(){
 }
 function countDirt(){smc.clearRect(0,0,90,120);smc.drawImage(D,0,0,90,120);const d=smc.getImageData(0,0,90,120).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>60)n++;return n;}
 function scrubAt(x0,y0,x1,y1){
-  const r=15+S.up.brush*5;
+  const r=15+toolLv('scrub')*5;
   dc.setTransform(DS,0,0,DS,0,0);dc.globalCompositeOperation='destination-out';
   const dist=Math.hypot(x1-x0,y1-y0),n=Math.max(1,Math.ceil(dist/(r*.4)));
   for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n,y=y0+(y1-y0)*i/n;const g=dc.createRadialGradient(x,y,r*.25,x,y,r);g.addColorStop(0,'rgba(0,0,0,.2)');g.addColorStop(1,'rgba(0,0,0,0)');dc.fillStyle=g;dc.beginPath();dc.arc(x,y,r,0,TAU);dc.fill();}
@@ -1009,13 +1060,6 @@ function showReplay(){
 }
 function bossTeaser(){for(let k=S.day;k<=S.day+2;k++)if(isBossLv(k)&&!(S.best&&S.best[k])){const v=VIPS.find(x=>x.id===BOSS_LV[k]);return`<div class="unlockcard"><span style="font-size:30px">👑</span><div><b>第 ${k} 关 Boss：${v.n}</b><span>${k===S.day?'下一关就来了，先把工具升好！':'快来了，提前攒钱升级工具'}</span></div></div>`;}return'';}
 /* 每日开门红包：每天第一次进店领，连续来越领越多（7 天一轮） */
-const DAILY=[80,100,120,150,180,220,400];
-function dailyGift(){const today=new Date().toDateString();if(!S.tut||S.lastOpen===today)return null;const y=new Date(Date.now()-864e5).toDateString();S.streak=S.lastOpen===y?(S.streak||0)%7+1:1;S.lastOpen=today;const g=DAILY[S.streak-1]*chOf(Math.min(S.realDay||S.day,30));S.coins+=g;save();hud();track('daily_gift',{streak:S.streak,coins:g});return{g,d:S.streak};}
-function showDaily(dg,next){open(`<h2>每日开门红包</h2><p class="muted">连续来店第 ${dg.d} 天</p>
-  <div class="daily">${DAILY.map((v,i)=>`<span class="${i<dg.d?'on':''}${i===dg.d-1?' now':''}"><b>${i+1}</b>${i===6?'🧧':'🪙'}</span>`).join('')}</div>
-  <div class="receipt"><div class="row total"><span>今日红包</span><span class="dots"></span><span>+¥${dg.g}</span></div></div>
-  <p class="muted">${dg.d<7?`明天再来，第 ${dg.d+1} 天红包更大；第 7 天是大红包。`:'7 天大红包到手！明天重新开始一轮。'}</p>
-  <div class="btns"><button class="btn" id="dgOk">收下</button></div>`);sfx.coin();$('dgOk').onclick=next;}
 const totalStars=()=>Object.values(S.best||{}).reduce((a,b)=>a+b,0);
 let R={jy:0,jv:0,tick:0,melt:0,sac:0,sacT:0,arm:0,fly:null,idle:0,land:0};
 let C=null,M=null,face='neutral',faceT=0,entry=0,bucket=0,shake=0,paused=true,hold=false,scrubbing=false,peeling=false,lastP=[0,0],ptr=null;
@@ -1046,7 +1090,7 @@ function footSpots(n,r,y0,y1,avoid){
     if(all().some(p=>Math.hypot(p.x-x,p.y-y)<p.r+r+2))continue;out.push({x,y,r});}
   return out;
 }
-function soakZone(){const z=(C&&C.traits.map(k=>TRAITS[k].zone).find(Boolean))||[39,44];const w=S.up.kettle*.8;return[z[0]-w,z[1]+w];}
+function soakZone(){const z=(C&&C.traits.map(k=>TRAITS[k].zone).find(Boolean))||[39,44];const w=toolLv('soak')*.8;return[z[0]-w,z[1]+w];}
 
 /* ---------- customers: arrive (spec) → bench → seat ---------- */
 function makeSpec(){
@@ -1288,7 +1332,7 @@ const ICONS={
 const TOOLS=[['soak','木桶'],['scrub','搓澡巾'],['trim','指甲钳'],['peel','刮刀'],['massage','推拿'],['paint','甲油'],['mask','泥膜'],['fish','鱼缸'],['wax','蜡条'],['moxa','火罐'],['art','画笔'],['towel','毛巾']];
 $('tray').innerHTML=TOOLS.map(([id,n])=>`<button class="tool" id="tool-${id}" data-id="${id}" aria-label="${n}">${ti(id)}<small>${n}</small></button>`).join('');
 $('tray').addEventListener('click',e=>{const b=e.target.closest('.tool');if(b)useTool(b.dataset.id,b);});
-function updateTray(){let n=0;document.querySelectorAll('.tool').forEach(b=>{const id=b.dataset.id,lock=id!=='towel'&&UNLOCK[id]>S.day;b.hidden=lock;if(!lock)n++;b.classList.toggle('active',!!M&&M.type===id);b.classList.remove('hint');const tl=id==='towel'?0:toolLv(id);if(tl)b.dataset.lv=tl>=TOOL_MAX?'✦':'Lv'+tl;else delete b.dataset.lv;});const tr=$('tray');tr.style.setProperty('--cols',n<=7?n:Math.ceil(n/2));tr.classList.toggle('two',n>7);}
+function updateTray(){let n=0;document.querySelectorAll('.tool').forEach(b=>{const id=b.dataset.id,lock=id!=='towel'&&UNLOCK[id]>S.day;b.hidden=lock;if(!lock)n++;b.classList.toggle('active',!!M&&M.type===id);b.classList.remove('hint');const u=id==='towel'?null:upOf(id),t=tierOf(u);if(t)b.dataset.lv=t<=FORK?'Lv'+t:(brOf(u)==='A'?'⚡':'💎')+t;else delete b.dataset.lv;});const tr=$('tray');tr.style.setProperty('--cols',n<=7?n:Math.ceil(n/2));tr.classList.toggle('two',n>7);}
 function hintTool(id){const b=$('tool-'+id);if(b)b.classList.add('hint');}
 
 function useTool(id,btn){
@@ -1452,7 +1496,7 @@ cv.addEventListener('pointermove',e=>{
       else if(spd>2400){if(!M.badStroke){M.badStroke=true;M.bad++;C.pat-=5;setFace('ouch',.8);say('慢点！刮破皮了！');sfx.bad();addFT('太快了',p[0],p[1]-14,'#ff8a80',15);}}
       else if(dy>.4){
         M.upAcc=0;
-        plc.setTransform(DS,0,0,DS,0,0);plc.globalCompositeOperation='destination-out';plc.lineCap='round';plc.lineWidth=18+(S.up.blade||0)*3;
+        plc.setTransform(DS,0,0,DS,0,0);plc.globalCompositeOperation='destination-out';plc.lineCap='round';plc.lineWidth=18+toolLv('peel')*3;
         plc.beginPath();plc.moveTo(lastP[0],lastP[1]);plc.lineTo(p[0],p[1]);plc.stroke();plc.globalCompositeOperation='source-over';
         M.curl.s=Math.min(18,M.curl.s+moved*.1);M.curl.x=p[0];M.curl.y=p[1]+5;M.dirty=true;
         if(scrapeT<=0){noise(.06,.16,2600);scrapeT=.07;}
@@ -1464,8 +1508,8 @@ cv.addEventListener('pointermove',e=>{
     scrubAt(lastP[0],lastP[1],p[0],p[1]);M.dirty=true;
     const moved=Math.hypot(p[0]-lastP[0],p[1]-lastP[1]),now=performance.now(),spd=moved/Math.max(8,now-M.lastT)*1000;M.lastT=now;LV.scrub=Math.max(LV.scrub,Math.min(1,spd/900));
     if(moved>1.5&&onFoot(p[0],p[1])){
-      const br=15+S.up.brush*5;
-      for(const l of C.lumps){if(l.hp>0&&Math.hypot(p[0]-l.x,p[1]-l.y)<l.r+br*.6){l.hp-=moved*.0035*(1+S.up.brush*.25)*(evo('scrub')?3:1);
+      const br=15+toolLv('scrub')*5;
+      for(const l of C.lumps){if(l.hp>0&&Math.hypot(p[0]-l.x,p[1]-l.y)<l.r+br*.6){l.hp-=moved*.0035*(1+toolLv('scrub')*.25)*(evo('scrub')?3:1);
         if(Math.random()<.3)PS.push({k:'mud',x:l.x,y:l.y,vx:(Math.random()-.5)*80,vy:-40,life:1,max:1,r:2+Math.random()*2});
         if(l.hp<=0){for(let k=0;k<10;k++)PS.push({k:'mud',x:l.x,y:l.y,vx:(Math.random()-.5)*160,vy:-80-Math.random()*60,life:1,max:1,r:2+Math.random()*3});addFT('碎了！',l.x,l.y-14,'#ffffff',16);sfx.clip();}}}
       let onT=false;for(const z of C.tickles)if(Math.hypot(p[0]-z.x,p[1]-z.y)<z.r+6)onT=true;
@@ -1481,7 +1525,7 @@ cv.addEventListener('pointermove',e=>{
   }else if(M&&M.type==='trim'&&M.filing&&C.callus){
     const moved=Math.hypot(p[0]-lastP[0],p[1]-lastP[1]);lastP=p;const cl=C.callus;
     if(cl.hp>0&&Math.hypot(p[0]-cl.x,p[1]-cl.y)<cl.r+14&&moved>1){
-      cl.hp-=moved*.0045*(1+S.up.clip*.2);
+      cl.hp-=moved*.0045*(1+toolLv('trim')*.2);
       if(Math.random()<.5)PS.push({k:'foam',x:p[0],y:p[1],vx:(Math.random()-.5)*40,vy:-20,life:.6,max:.6,r:2+Math.random()*2});
       if(dustT<=0){noise(.08,.18,1800);dustT=.09;}
       if(cl.hp<=0){addFT('老茧磨平了',cl.x,cl.y-20,'#f5c95c',16);sfx.ding();checkTrimDone();}
@@ -1507,7 +1551,7 @@ function trimProgress(){
 }
 function checkTrimDone(){trimProgress();if(C.nails.every(n=>!n.long||n.clipped)&&(!C.callus||C.callus.hp<=0))finish('trim',Math.max(.3,1-.15*M.miss));}
 function tryClip(x,y){
-  const rad=18+S.up.clip*6;let best=-1,bd=1e9;
+  const rad=18+toolLv('trim')*6;let best=-1,bd=1e9;
   C.nails.forEach((n,i)=>{if(!n.long||n.clipped)return;const [mx,my]=clawMid(i);const d=Math.hypot(x-mx,y-my);if(d<bd){bd=d;best=i;}});
   if(best>=0&&bd<rad){
     const n=C.nails[best];n.hp--;const [mx,my]=clawMid(best);sfx.clip();
@@ -1581,7 +1625,7 @@ function checkout(angry){
   C.done=true;M=null;Q=null;hold=false;scrubbing=false;peeling=false;$('swatches').hidden=true;closeChat();updateTray();
   if(C.boss){bossEnd(!angry);return;}
   const k=(C.has('picky')?1.3:1)*payK(S.day);
-  const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k*(1+TOOL_PAY[toolLv(s)])):0}));
+  const rows=C.steps.map(s=>({s,q:C.q[s],amt:C.q[s]!=null?Math.round(STEPS[s].p*C.q[s]*k*(1+payBonus(s))):0}));
   let sum=rows.reduce((a,r)=>a+r.amt,0);
   const undone=rows.filter(r=>r.q==null).length;
   const avg=rows.reduce((a,r)=>a+(r.q||0),0)/rows.length;
@@ -1665,14 +1709,25 @@ function showDayEnd(){
 }
 let shopTab='tool',shopEvo=null;
 function showShop(){
-  const cap=chOf(S.day),sc=$('panel').scrollTop;
+  const sc=$('panel').scrollTop;
   let body='';
   if(shopTab==='tool'){
-    body=UPG.filter(u=>UNLOCK[u.svc]<=Math.max(S.day,1)).map(u=>{const lv=S.up[u.id]||0,max=lv>=TOOL_MAX,capped=!max&&lv>=cap,cost=max?0:upCost(u,lv);
-      return `<div class="item"><b>${u.n} · ${u.lv.at(lv)}</b><button class="buy" data-u="${u.id}" ${max||capped?'disabled':S.coins<cost?'data-poor="1"':''}>${max?'已满级':capped?CH_NUM.at(cap+1)+'可升':'¥'+cost}</button>
-      <span class="d">${max?`<b class="evo">✨ 已进化 · ${u.evo}</b><br>${STEPS[u.svc].n}收费 +${TOOL_PAY[lv]*100}%`:`下一级：${u.lv.at(lv+1)} · ${lv+1>=TOOL_MAX?`<b class="evo">✨ 进化 · ${u.evo}</b>`:u.d}，${STEPS[u.svc].n}收费 +${Math.round(TOOL_PAY[lv+1]*100)}%`}</span><div class="pips">${Array.from({length:TOOL_MAX},(_,i)=>`<i class="${i<lv?'on':i<cap?'':'cap'}"></i>`).join('')}</div></div>`;}).join('')
-      +`<p class="muted">每章能升的等级：第一章 1 级，第二章 2 级，第三章 3 级（进化）。</p>`;
-    if(shopEvo){body=`<div class="evobanner"><b>✨ ${shopEvo.n}进化为「${shopEvo.lv.at(-1)}」！</b><span>${shopEvo.evo}</span></div>`+body;shopEvo=null;}
+    body=UPG.filter(u=>UNLOCK[u.svc]<=Math.max(S.realDay||S.day,1)).map(u=>{const t=tierOf(u),max=t>=TIERS,b=brOf(u),sn=STEPS[u.svc].n;
+      const pips=`<div class="pips">${Array.from({length:TIERS},(_,i)=>`<i class="${i<t?'on':''}${i===FORK?' fork':''}"></i>`).join('')}</div>`;
+      const pct=x=>Math.round(x*100);
+      if(t===FORK){
+        const opt=r=>{const R=ROUTE[r],c=upCost(u,t);return `<div class="route r${r}"><div><b>${R.tag} · ${u[r].lv[0]}</b><span>${u[r].lv.join(' → ')}</span><span>✔ ${R.pro}${r==='A'?`「${u.A.skill}」`:''}</span><span class="con">✘ ${R.con}</span></div><button class="buy" data-u="${u.id}" data-br="${r}" ${S.coins<c?'data-poor="1"':''}>¥${c}</button></div>`;};
+        return `<div class="item fork"><b>${u.n} · ${tierName(u,t)}</b><span class="d">下一档要选路线，选了以后可以花钱换：</span>${opt('A')}${opt('B')}${pips}</div>`;}
+      const cost=max?0:upCost(u,t);
+      const route=t>FORK?`<span class="rtag r${b}">${ROUTE[b].tag}</span>`:'';
+      const next=max?`<b class="evo">✨ 满级 · ${ROUTE[b].skill(u)}</b><br>${sn}收费 +${pct(payBonus(u.svc))}%`
+        :t<FORK?`下一档：${tierName(u,t+1)} · ${u.d}，${sn}收费 +${pct(PAY0[t+1])}%`
+        :`下一档：${u[b].lv.at(t-FORK)} · ${b==='A'?'手感更快':'收费更高'}，${sn}收费 +${pct(PAY[b].at(t-FORK))}%${t+1>=TIERS?`<br><b class="evo">✨ 满级解锁 · ${ROUTE[b].skill(u)}</b>`:''}`;
+      const sw=t>FORK?`<button class="swbtn" data-sw="${u.id}">换成${ROUTE[b==='A'?'B':'A'].tag} ¥${switchCost(u)}</button>`:'';
+      return `<div class="item"><b>${u.n} · ${tierName(u,t)} ${route}</b><button class="buy" data-u="${u.id}" ${max?'disabled':S.coins<cost?'data-poor="1"':''}>${max?'已满级':'¥'+cost}</button>
+      <span class="d">${next}</span>${pips}${sw}</div>`;}).join('')
+      +`<p class="muted">每样工具 5 档，随时能升。第 3 档分两条路：⚡效率（做得快）或 💎品质（收得贵）。</p>`;
+    if(shopEvo){const b=brOf(shopEvo);body=`<div class="evobanner"><b>✨ ${shopEvo.n}升满：「${tierName(shopEvo,TIERS)}」！</b><span>${ROUTE[b].skill(shopEvo)}</span></div>`+body;shopEvo=null;}
   }else body=decoShopHtml();
   open(`<h2>商店</h2><p class="muted">钱包 <b style="color:var(--sign);font-size:16px">¥${S.coins}</b></p>
   <div class="tabs"><button class="tabb ${shopTab==='tool'?'on':''}" data-tab="tool">工具</button><button class="tabb ${shopTab==='deco'?'on':''}" data-tab="deco">装修</button></div>
@@ -1680,8 +1735,9 @@ function showShop(){
   <div class="btns"><button class="btn" id="goBtn">开始第 ${S.day} 关</button></div>`);
   $('panel').scrollTop=sc;
   $('panel').onclick=e=>{const t=e.target.closest('.tabb');if(t){shopTab=t.dataset.tab;$('panel').scrollTop=0;showShop();return;}
+    const sw=e.target.closest('.swbtn');if(sw){const u=UPG.find(x=>x.id===sw.dataset.sw),c=switchCost(u);if(S.coins<c){poorBuy(sw);return;}S.coins-=c;S.br=S.br||{};S.br[u.id]=brOf(u)==='A'?'B':'A';track('switch_route',{id:u.id,br:S.br[u.id],cost:c});save();hud();sfx.coin();showShop();return;}
     const b=e.target.closest('.buy');if(!b||b.disabled)return;
-    if(b.dataset.u){const u=UPG.find(x=>x.id===b.dataset.u),c=upCost(u,S.up[u.id]||0);if(S.coins<c){poorBuy(b);return;}S.coins-=c;S.up[u.id]=(S.up[u.id]||0)+1;track('buy_tool',{id:u.id,lv:S.up[u.id],cost:c});if(S.up[u.id]>=TOOL_MAX){shopEvo=u;setTimeout(()=>sfx.fanfare(),120);$('panel').scrollTop=0;}}
+    if(b.dataset.u){const u=UPG.find(x=>x.id===b.dataset.u),t=tierOf(u),c=upCost(u,t);if(t>=TIERS)return;if(S.coins<c){poorBuy(b);return;}S.coins-=c;if(t===FORK){S.br=S.br||{};S.br[u.id]=b.dataset.br||'A';}S.up[u.id]=t+1;track('buy_tool',{id:u.id,lv:t+1,br:t>=FORK?brOf(u):null,cost:c});if(t+1>=TIERS){shopEvo=u;setTimeout(()=>sfx.fanfare(),120);$('panel').scrollTop=0;}}
     else if(b.dataset.deco){const d=DECOS.find(x=>x.id===b.dataset.deco);if(!d||S.deco[d.id])return;if(S.coins<d.price){poorBuy(b);return;}S.coins-=d.price;S.deco[d.id]=1;}
     save();hud();sfx.coin();showShop();};
   $('goBtn').onclick=()=>{$('panel').onclick=null;startDay();};
@@ -1712,7 +1768,7 @@ function showTitle(){
   </div>`);
   $('ov').classList.add('title');
   if(S.refund){delete S.refund;save();}
-  $('startBtn').onclick=()=>{ac();sfx.doorbell();if(!S.tut&&S.served===0){track('tut_start');startTutorial();return;}const dg=dailyGift();if(dg)showDaily(dg,startDay);else startDay();};
+  $('startBtn').onclick=()=>{ac();sfx.doorbell();if(!S.tut&&S.served===0){track('tut_start');startTutorial();return;}startDay();};
   $('howBtn').onclick=showHowTo;
   const rb=$('resetBtn');if(rb){let arm=false;rb.onclick=()=>{if(!arm){arm=true;rb.textContent='再点一次确认';return;}const m=S.muted;S=def();S.muted=m;save();hud();showTitle();};}
 }
@@ -2384,9 +2440,9 @@ function showEnding(){
   <div class="receipt">
     <div class="row"><span>服务客人</span><span class="dots"></span><span>${S.served} 位</span></div>
     <div class="row"><span>收集星星</span><span class="dots"></span><span>${totalStars()} / 90</span></div>
-    <div class="row"><span>进化工具</span><span class="dots"></span><span>${UPG.filter(u=>(S.up[u.id]||0)>=TOOL_MAX).length} / ${UPG.length}</span></div>
+    <div class="row"><span>满级工具</span><span class="dots"></span><span>${UPG.filter(u=>tierOf(u)>=TIERS).length} / ${UPG.length}</span></div>
   </div>
-  <div class="unlockcard"><span style="font-size:30px">♾️</span><div><b>无尽营业已开启</b><span>第 31 关起每天都有新客人，难度保持在最高档；继续赚钱、进化工具、装修小店，也可以重玩关卡把 90 颗星刷满。</span></div></div>
+  <div class="unlockcard"><span style="font-size:30px">♾️</span><div><b>无尽营业已开启</b><span>第 31 关起每天都有新客人，难度保持在最高档；继续赚钱、升满工具、装修小店，也可以重玩关卡把 90 颗星刷满。</span></div></div>
   <div class="btns"><button class="btn" id="shopBtn">继续营业</button></div>`);
   sfx.fanfare();$('shopBtn').onclick=showShop;
 }
@@ -2565,7 +2621,7 @@ function update(dt,t){
   if(fadeDirt>0){fadeDirt-=dt*2;if(fadeDirt<=0){fadeDirt=0;dc.setTransform(1,0,0,1,0,0);dc.clearRect(0,0,D.width,D.height);}}
   if(faceT>0&&faceT<90){faceT-=dt;if(faceT<=0)face=baseFace();}
   if(!paused&&!C.done&&entry>=1){
-    if(!DBG.god&&!TUT.on&&!(C.boss&&bmBusy()))C.pat-=dt*(C.boss?K.bossDecay:K.decay)*(1-.12*assistLv)*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1);
+    if(!DBG.god&&!TUT.on&&!(C.boss&&bmBusy())&&!(M&&sig(M.type)))C.pat-=dt*(C.boss?K.bossDecay:K.decay)*(1-.12*assistLv)*(1-decoEff('pat'))*.95*C.kind.pat*(C.has('rush')?1.35:1)*(C.vip&&C.vip.patK||1);
     if(C.pat<40){rushT-=dt;if(rushT<=0){rushT=9;say(pick(LINES.rush));}}
     if(C.boss&&!C.done)bmUpdate(dt,t);
     if(!TUT.on&&!Q&&!chatOpen&&!(C.boss&&bmBusy())&&C.qtes<qteMax(S.day)&&!(M&&M.holding)){C.qteT-=dt;if(C.qteT<=0){startQTE();C.qteT=7+Math.random()*8;}}
@@ -2926,7 +2982,7 @@ function draw(t){
   if(M&&M.type==='paint')drawPaintHints(ctx,t);
   if(M&&SVC[M.type])SVC[M.type].draw(ctx,t);
   if(M&&M.type==='peel'&&ptrF){if(peeling)drawCurl(ctx,M.curl.x,M.curl.y,M.curl.s,0);if(!drawHeld(ctx,'peel'))drawBlade(ctx,ptrF[0],ptrF[1]);}
-  if(M&&M.type==='scrub'&&ptrF){const r=15+S.up.brush*5;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(ptrF[0],ptrF[1],r,0,TAU);ctx.stroke();ctx.setLineDash([]);}
+  if(M&&M.type==='scrub'&&ptrF){const r=15+toolLv('scrub')*5;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=2;ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(ptrF[0],ptrF[1],r,0,TAU);ctx.stroke();ctx.setLineDash([]);}
   if(M&&M.type!=='peel'&&ptrF)drawHeld(ctx,M.type);
   if(C.boss)bmDrawFoot(ctx,t);
   drawParticles(ctx,false);
