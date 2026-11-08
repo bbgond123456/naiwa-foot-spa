@@ -214,12 +214,13 @@ class Player:
         for tab in ('tool', 'deco'):
             pg.evaluate(f"__t.shopTab='{tab}';__t.showShop()")
             for _ in range(25):
-                btns = pg.evaluate("[...document.querySelectorAll('#shopList .buy:not([disabled])')].map(b=>[b.dataset.u||'',b.dataset.deco||'',+b.textContent.replace(/[^0-9]/g,'')])")
+                route = os.environ.get('NAIWA_ROUTE', 'A')  # 第 3 档选哪条路线
+                btns = pg.evaluate("[...document.querySelectorAll('#shopList .buy:not([disabled])')].filter(b=>!b.dataset.br||b.dataset.br==='%s').map(b=>[b.dataset.u||'',b.dataset.deco||'',+b.textContent.replace(/[^0-9]/g,''),b.dataset.br||''])" % route)
                 if not btns:
                     break
                 btns.sort(key=lambda x: x[2])
-                u, d, _ = btns[0]
-                pg.click(f"[data-u='{u}']" if u else f"[data-deco='{d}']")
+                u, d, _, br = btns[0]
+                pg.click((f"[data-u='{u}'][data-br='{br}']" if br else f"[data-u='{u}']") if u else f"[data-deco='{d}']")
         info = pg.evaluate("({coins:__t.S.coins,tools:Object.values(__t.S.up).reduce((a,b)=>a+b,0),deco:Object.keys(__t.S.deco).length})")
         pg.click('#goBtn')
         return info

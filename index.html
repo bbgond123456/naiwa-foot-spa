@@ -490,6 +490,10 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 .dtrow b{display:flex;align-items:center;gap:6px;font-weight:600}
 .dtrow b img{width:24px;height:24px;object-fit:contain;flex:none}
 .dtrow .dg{padding:6px 0;min-height:0}
+
+/* 品质满级：做这项时耐心条变金色 */
+#patWrap.slow #patBar{background:linear-gradient(90deg,#ffe38a,#e0a72e)!important;box-shadow:0 0 8px rgba(240,190,60,.8)}
+#patWrap.slow #patLbl{color:#b8790c;font-weight:700}
 </style>
 
 <div id="app">
@@ -558,8 +562,10 @@ new ResizeObserver(()=>{resize();placeScene();}).observe(wrap);new ResizeObserve
 /* ---------- data ---------- */
 const STEPS={soak:{n:'泡脚',p:15},scrub:{n:'搓泥',p:25},peel:{n:'去角质',p:30},fish:{n:'鱼疗',p:45},wax:{n:'脱脚毛',p:45},mask:{n:'足膜',p:40},moxa:{n:'拔罐',p:55},art:{n:'足部彩绘',p:60},trim:{n:'修脚',p:30},massage:{n:'足底按摩',p:40},paint:{n:'蛙趾美甲',p:35}};
 /* 工具升级 v2：5 档，不按章节锁；第 3 档分两条路线
-   ⚡效率路线：手感继续变快，满级解锁进化技能；代价：收费加成低（最多 +40%）
-   💎品质路线：收费大涨（最多 +100%），满级「慢工细活」做这项时客人耐心不掉；代价：手感停在 2 档 */
+   ⚡效率路线：手感继续变快，满级解锁进化技能；代价：收费加成低（最多 +30%）
+   💎品质路线：收费涨得多（最多 +65%），满级「慢工细活」做这项时客人耐心不掉；代价：手感停在 2 档
+   数值（v2.1）：品质原先最高 +100%，模拟 30 关 58 星 vs 效率 39 星，一边倒；
+   过关目标不含工具加成，收费加成等于直接降目标，所以压到 +65%，并让后几档更贵，30 关内买不满 */
 const UPG=[
   {id:'kettle',svc:'soak',n:'泡脚桶',lv:['木桶','恒温桶','电热桶'],d:'绿区更宽，泡得更快',
    A:{lv:['涡轮按摩桶','等离子速热桶','量子恒温泡脚桶'],skill:'量子恒温：水几乎不会变凉'},
@@ -595,13 +601,13 @@ const UPG=[
    A:{lv:['马克笔','喷枪','印章机'],skill:'印章机：描到七成自动补完'},
    B:{lv:['金粉画笔','狼毫笔','大师画笔']}}
 ];
-const ROUTE={A:{tag:'⚡ 效率',skill:u=>u.A.skill,pro:'手感继续变快，满级解锁进化技能',con:'收费最多只 +40%'},
-             B:{tag:'💎 品质',skill:()=>'慢工细活：做这项时客人耐心不掉',pro:'收费最多 +100%，满级「慢工细活」',con:'手感停在 2 档，不再变快'}};
+const ROUTE={A:{tag:'⚡ 效率',skill:u=>u.A.skill,pro:'手感继续变快，满级解锁进化技能',con:'收费最多只 +30%'},
+             B:{tag:'💎 品质',skill:()=>'慢工细活：做这项时客人耐心不掉',pro:'收费最多 +65%，满级「慢工细活」',con:'手感停在 2 档，不再变快'}};
 const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:380,fish:420,wax:460,moxa:500,art:550};
 const TIERS=5,FORK=2;                       // 0→1→2 公共，2→3 时选路线
-const TIER_MULT=[.4,.8,1.4,2.2,3.2];         // 从第 t 档升到 t+1 档的价格 × 基础价
+const TIER_MULT=[.4,.9,1.7,2.8,4.2];         // 从第 t 档升到 t+1 档的价格 × 基础价
 const POWER={A:[2.5,3,3],B:[2,2,2]};         // 手感档位（喂给各项目的手感公式）
-const PAY0=[0,.1,.2],PAY={A:[.25,.3,.4],B:[.45,.7,1]};
+const PAY0=[0,.08,.15],PAY={A:[.15,.2,.3],B:[.3,.45,.65]};
 const upCost=(u,t)=>Math.round(TOOL_BASE[u.svc]*TIER_MULT.at(t)/10)*10;
 const switchCost=u=>Math.round(TOOL_BASE[u.svc]*TIER_MULT.at(FORK)/10)*10;
 const upOf=svc=>UPG.find(t=>t.svc===svc);
@@ -1303,7 +1309,7 @@ function flyCoins(n,fromEl){
 function popCoin(){const c=$('coinChip');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');}
 function renderTicket(){
   $('cName').innerHTML=C.name+'<small class="kind">'+C.look.n+'</small>';$('tagNo').textContent='手牌 '+String(C.tag).padStart(2,'0');
-  $('patLbl').textContent=C.boss?'满意度':'耐心';$('patWrap').classList.toggle('boss',!!C.boss);
+  $('patLbl').textContent=$('patWrap').classList.contains('slow')?'慢工细活':C.boss?'满意度':'耐心';$('patWrap').classList.toggle('boss',!!C.boss);
   const tg=(assistLv&&!DBG.solo?'<span class="tg assist">店长帮忙中</span>':'')+(C.boss?`<span class="tg boss">BOSS${bossRun&&BM_TAG[bossRun.id]?' · '+BM_TAG[bossRun.id]:''}</span>`:C.vip?`<span class="tg vip">贵客 · ${C.vip.rule}</span>`:'')+(C.demand?`<span class="tg dem">要求：${C.demand.id==='speed'?'这一项 15 秒内做完':'这一项不许出错'}</span>`:'')+C.traits.map(k=>`<button class="tg" data-k="${k}">${TRAITS[k].n}</button>`).join('')+(C.herb?`<span class="tg herb">泡脚加${C.herb.n}</span>`:'');
   $('tags').innerHTML=tg;$('tags').hidden=!tg;
   $('chips').innerHTML=C.steps.map((s,i)=>{
@@ -2695,7 +2701,7 @@ function update(dt,t){
     if(p.k==='mud'||p.k==='chip'||p.k==='curl'||p.k==='hair'||p.k==='drop')p.vy+=420*dt;if(p.k==='spark')p.vy+=200*dt;if(p.k==='steam')p.r+=8*dt;if(p.k==='conf'){p.vy+=320*dt;p.vx*=1-1.5*dt;}if(p.k==='star')p.vy+=160*dt;if(p.k==='puff')p.r+=40*dt;if(p.k==='bub')p.x+=Math.sin(p.life*9+p.ph)*.5;if(p.rot!=null)p.rot+=p.vr*dt;}
   for(let i=FT.length-1;i>=0;i--){const f=FT[i];f.life-=dt;f.y-=28*dt;if(f.life<=0)FT.splice(i,1);}
   if(C.boss&&!C.done&&Math.random()<.1)hud();
-  const pb=$('patBar');const pv=clamp(C.pat,0,100);{const fk='f_'+(pv>85?'love':pv>62?'happy':pv>40?'ok':pv>22?'worry':'angry'),pf=$('patFace');if(pf&&pf.dataset.k!==fk&&SPR[fk]){pf.dataset.k=fk;pf.src=SPR[fk];}}pb.style.width=pv+'%';pb.style.background=C.boss?(pv>=90?'#e0a72e':pv>=60?'var(--gold)':'var(--bad)'):pv>60?'var(--good)':pv>30?'var(--warn)':'var(--bad)';
+  const pb=$('patBar');const pv=clamp(C.pat,0,100);{const sl=!!(M&&sig(M.type)&&!C.boss);const pw=$('patWrap');if(pw.classList.contains('slow')!==sl){pw.classList.toggle('slow',sl);$('patLbl').textContent=sl?'慢工细活':C.boss?'满意度':'耐心';}}{const fk='f_'+(pv>85?'love':pv>62?'happy':pv>40?'ok':pv>22?'worry':'angry'),pf=$('patFace');if(pf&&pf.dataset.k!==fk&&SPR[fk]){pf.dataset.k=fk;pf.src=SPR[fk];}}pb.style.width=pv+'%';pb.style.background=C.boss?(pv>=90?'#e0a72e':pv>=60?'var(--gold)':'var(--bad)'):pv>60?'var(--good)':pv>30?'var(--warn)':'var(--bad)';
 }
 
 /* ---------- drawing ---------- */
