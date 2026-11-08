@@ -482,6 +482,14 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 .shop .rtag.rB{background:rgba(224,167,46,.22);color:#7a4a08}
 .shop .pips i.fork{box-shadow:0 0 0 1.5px #e0a72e}
 .shop .swbtn{margin-top:6px;font:600 11.5px/1 inherit;padding:5px 8px;border-radius:8px;border:1px dashed rgba(0,0,0,.25);background:transparent;color:inherit;cursor:pointer}
+
+.dtool{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.dtrow{display:grid;grid-template-columns:1fr 40px 40px 40px;gap:4px;align-items:center;font-size:13px}
+.dtrow span{display:flex;flex-direction:column;line-height:1.3}
+.dtrow small{font-size:11px;opacity:.7}
+.dtrow b{display:flex;align-items:center;gap:6px;font-weight:600}
+.dtrow b img{width:24px;height:24px;object-fit:contain;flex:none}
+.dtrow .dg{padding:6px 0;min-height:0}
 </style>
 
 <div id="app">
@@ -1837,6 +1845,15 @@ function showDebug(){
     <div class="dgrid">${Array.from({length:maxLv},(_,i)=>i+1).map(n=>{const neu=ORDER.find(s=>UNLOCK[s]===n&&n>1);return`<button class="dg ${n===lv?'on':''}" data-lv="${n}">${n}${isBossLv(n)?'<small style="color:var(--sign)">Boss</small>':neu?`<small>${STEPS[neu].n.replace('足底','').replace('蛙趾','').replace('足部','')}</small>`:''}</button>`;}).join('')}</div></div>
   <div class="dbg"><b>单独试玩一个项目</b><span class="muted">客人只点这一项，做完再来一位同样的；没解锁的会先跳到解锁那一关</span>
     <div class="dgrid wide">${ORDER.map(s=>`<button class="dg ${DBG.solo===s?'on':''}" data-solo="${s}">${ti(s)}${STEPS[s].n}<small>第${UNLOCK[s]}关</small></button>`).join('')}</div></div>
+  <div class="dbg"><b>工具升级</b><span class="muted">直接设定档位和路线（不花钱），用来试升级后的手感和收费；第 3 档起才分 ⚡效率 / 💎品质</span>
+    <div class="dgrid wide">
+      <button class="dg" data-tp="0">全部清零</button>
+      <button class="dg" data-tp="2">全部 Lv2</button>
+      <button class="dg" data-tp="A">全部 ⚡满级</button>
+      <button class="dg" data-tp="B">全部 💎满级</button>
+      <button class="dg" data-act="shop">打开商店</button>
+    </div>
+    <div class="dtool">${UPG.map(u=>{const t=tierOf(u);return`<div class="dtrow"><span><b>${ti(u.svc)}${u.n}</b><small>${t} 档 · ${tierName(u,t)}${t>FORK?' · '+ROUTE[brOf(u)].tag:''}</small></span><button class="dg" data-tu="${u.id}" data-d="-1" ${t<=0?'disabled':''}>−</button><button class="dg" data-tu="${u.id}" data-d="1" ${t>=TIERS?'disabled':''}>＋</button><button class="dg" data-tb="${u.id}" title="换路线">${brOf(u)==='A'?'⚡':'💎'}</button></div>`;}).join('')}</div></div>
   <div class="dbg"><b>其他</b>
     <div class="dgrid wide">
       <button class="dg" data-act="coins">钱 +¥1000</button>
@@ -1855,7 +1872,13 @@ function showDebug(){
     const b=e.target.closest('button');if(!b||b.disabled)return;
     if(b.dataset.lv){$('panel').onclick=null;DBG.solo=null;S.day=+b.dataset.lv;save();hud();startDay();return;}
     if(b.dataset.solo){$('panel').onclick=null;const sv=b.dataset.solo;DBG.solo=sv;if(S.day<UNLOCK[sv])S.day=UNLOCK[sv];save();dayEarn=0;dayStars=[];dayLog=[];payOpen=false;clearTimeout(payT);{const pc=$('paycard');if(pc)pc.hidden=true;}doneCount=0;missed=0;dayGoal=goalFor(S.day);close();seatSolo(sv);return;}
+    if(b.dataset.tu||b.dataset.tb||b.dataset.tp){S.br=S.br||{};
+      if(b.dataset.tu){const u=UPG.find(x=>x.id===b.dataset.tu);S.up[u.id]=clamp(tierOf(u)+(+b.dataset.d),0,TIERS);}
+      else if(b.dataset.tb){const u=UPG.find(x=>x.id===b.dataset.tb);S.br[u.id]=brOf(u)==='A'?'B':'A';}
+      else{const p=b.dataset.tp;UPG.forEach(u=>{S.up[u.id]=p==='A'||p==='B'?TIERS:+p;if(p==='A'||p==='B')S.br[u.id]=p;});}
+      save();hud();updateTray();const sc=$('panel').scrollTop;showDebug();$('panel').scrollTop=sc;return;}
     const a=b.dataset.act;
+    if(a==='shop'){$('panel').onclick=null;shopTab='tool';showShop();return;}
     if(a==='coins'){S.coins+=1000;save();hud();sfx.coin();showDebug();}
     else if(a==='god'){DBG.god=!DBG.god;showDebug();}
     else if(a==='vip'){$('panel').onclick=null;close();const met=VIPS.filter(v=>v.lv<=Math.max(S.day,4)&&!v.boss);seat(vipSpec(pick(met.length?met:VIPS)));}
