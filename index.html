@@ -494,6 +494,11 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 /* 品质满级：做这项时耐心条变金色 */
 #patWrap.slow #patBar{background:linear-gradient(90deg,#ffe38a,#e0a72e)!important;box-shadow:0 0 8px rgba(240,190,60,.8)}
 #patWrap.slow #patLbl{color:#b8790c;font-weight:700}
+
+.chat button.meme{border-style:dashed;border-color:#b07fd8;background:#f6efff}
+
+/* 聊天选项要压在客人说话气泡上面，不然按钮被挡 */
+.chat{z-index:7}
 </style>
 
 <div id="app">
@@ -601,8 +606,8 @@ const UPG=[
    A:{lv:['马克笔','喷枪','印章机'],skill:'印章机：描到七成自动补完'},
    B:{lv:['金粉画笔','狼毫笔','大师画笔']}}
 ];
-const ROUTE={A:{tag:'⚡ 效率',skill:u=>u.A.skill,pro:'手感继续变快，满级解锁进化技能',con:'收费最多只 +30%'},
-             B:{tag:'💎 品质',skill:()=>'慢工细活：做这项时客人耐心不会自己往下掉（做错照扣）',pro:'收费最多 +65%，满级「慢工细活」',con:'手感停在 2 档，不再变快'}};
+const ROUTE={A:{tag:'⚡ 做得快',skill:u=>u.A.skill,short:u=>u.A.skill.split('：').at(-1),pro:'每升一档，做得更快',con:'加价少（最多 +30%）'},
+             B:{tag:'💎 卖得贵',skill:()=>'慢工细活：做这项时客人耐心不会自己往下掉（做错照扣）',short:()=>'做这项时客人不掉耐心',pro:'每升一档，收费更高（最多 +65%）',con:'不再变快'}};
 const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:380,fish:420,wax:460,moxa:500,art:550};
 const TIERS=5,FORK=2;                       // 0→1→2 公共，2→3 时选路线
 const TIER_MULT=[.4,.9,1.7,2.8,4.2];         // 从第 t 档升到 t+1 档的价格 × 基础价
@@ -983,15 +988,22 @@ const TRAITS={
 };
 const TRAIT_DAY={scald:1,cold:1,rush:1,rich:1,chatty:2,sweaty:2,picky:6,insomnia:7,ticklish:8};
 const TRAIT_LINES={scald:'水别太烫啊，我皮薄。',cold:'我这老寒腿，水要烫才舒服。',ticklish:'我脚底特别怕痒，你轻点搓。',rush:'快点快点，我赶时间！',picky:'我可是很挑的，别糊弄我。',chatty:'老板，咱边洗边聊呗？',rich:'弄得好，小费少不了你的。',sweaty:'我这脚汗多，泥都结块了…',insomnia:'最近老失眠，帮我多按按失眠点。'};
+/* 聊天：两个正常回答 + 一个「抽象」回答（m）。抽象回答 60% 接住梗：大笑、小费更多；40% 没接住：客人一脸问号 */
 const CHATS=[
-  {q:'你说我这脚还有救吗？',a:['包在我身上！','这个……难说。'],g:0},
-  {q:'今天荷塘的水是不是有点凉？',a:['是啊，所以来泡脚嘛','我又不住荷塘'],g:0},
-  {q:'你们这儿能办卡吗？',a:['办卡打八折哦','不能'],g:0},
-  {q:'你看我是不是又胖了？',a:['是有点圆','一点没胖！'],g:1},
-  {q:'隔壁蛙哥说他家足浴更便宜。',a:['便宜没好货呀','那你去他家啊'],g:0},
-  {q:'你修脚多少年啦？',a:['刚学三天','祖传手艺，三代了'],g:1},
-  {q:'这音乐是蛙鸣合唱团的吗？',a:['对，您耳朵真灵','不知道'],g:0},
-  {q:'我这脚是不是全荷塘最黑的？',a:['确实最黑','洗完就是最白的'],g:1}
+  {q:'你说我这脚还有救吗？',a:['包在我身上！','这个……难说。'],g:0,m:'救不了一点，但我是专业的'},
+  {q:'今天荷塘的水是不是有点凉？',a:['是啊，所以来泡脚嘛','我又不住荷塘'],g:0,m:'水凉不凉不重要，主打一个陪伴'},
+  {q:'你们这儿能办卡吗？',a:['办卡打八折哦','不能'],g:0,m:'办！办的不是卡，是青春'},
+  {q:'你看我是不是又胖了？',a:['是有点圆','一点没胖！'],g:1,m:'尊嘟假嘟？我咋没看出来'},
+  {q:'隔壁蛙哥说他家足浴更便宜。',a:['便宜没好货呀','那你去他家啊'],g:0,m:'他便宜，我遥遥领先'},
+  {q:'你修脚多少年啦？',a:['刚学三天','祖传手艺，三代了'],g:1,m:'修脚三年，江湖人称脚门'},
+  {q:'这音乐是蛙鸣合唱团的吗？',a:['对，您耳朵真灵','不知道'],g:0,m:'泰酷辣，我也天天单曲循环'},
+  {q:'我这脚是不是全荷塘最黑的？',a:['确实最黑','洗完就是最白的'],g:1,m:'家人们谁懂啊，这叫黑金配色'},
+  {q:'最近压力好大……',a:['来，泡泡脚放松下','谁不是呢'],g:0,m:'压力是什么？能泡吗？'},
+  {q:'我刚下班，累瘫了。',a:['那你回家睡啊','辛苦了，躺好交给我'],g:1,m:'打工蛙打工魂，泡完又是一条好汉'},
+  {q:'你觉得我这身颜色好看吗？',a:['特别衬你','一般般'],g:0,m:'City 不 City？太 City 了'},
+  {q:'能给我打个折吗？',a:['不行','给您抹个零'],g:1,m:'可以，打个骨折'},
+  {q:'听说你们老板很凶？',a:['我们老板人可好了','是挺凶的'],g:0,m:'老板？我就是老板（并不是）'},
+  {q:'你这手法跟谁学的？',a:['自学成才','跟老师傅学的'],g:1,m:'梦里学的，醒来就会了'}
 ];
 const NEWS={
   1:['先学两门手艺：泡脚、搓泥，做完用毛巾结账','客人会陆续到店，坐在上面的长凳排队，等太久会走','本关收入达到目标就拿星星，1 星就能过关','会有突发状况：打喷嚏、苍蝇，看到闪圈快点'],
@@ -1465,13 +1477,15 @@ $('swatches').addEventListener('click',e=>{
 function openChat(){
   const q=pick(CHATS),flip=Math.random()<.5,ans=flip?[q.a[1],q.a[0]]:q.a,good=flip?1-q.g:q.g;
   chatOpen={t:7,max:7,good};C.chats++;
-  $('chat').innerHTML=`<p>「${q.q}」</p><div class="ca">${ans.map((a,i)=>`<button data-i="${i}">${a}</button>`).join('')}</div><div class="tm"><i id="chatTm"></i></div>`;
+  $('chat').innerHTML=`<p>「${q.q}」</p><div class="ca">${ans.map((a,i)=>`<button data-i="${i}">${a}</button>`).join('')}${q.m?`<button class="meme" data-i="2">🤪 ${q.m}</button>`:''}</div><div class="tm"><i id="chatTm"></i></div>`;
   $('chat').hidden=false;sfx.croak();
 }
 function closeChat(){chatOpen=null;$('chat').hidden=true;}
 function answerChat(i){
   if(!chatOpen||!C)return;const ok=i===chatOpen.good;closeChat();
   if(i<0){C.pat-=5;setFace('angry',1);say('怎么不理我呀？');sfx.bad();}
+  else if(i===2){if(Math.random()<.6){C.pat=Math.min(100,C.pat+10);C.chatTip+=12;setFace('love',1.4);say(pick(['哈哈哈哈哈你好抽象！','笑死，这个梗我懂！','绷不住了，赏你的！','你小子有点东西。']));sfx.coin();addFT('接住梗了 +¥12',180,280,'#f5c95c',18,1);track('chat_meme',{ok:1});}
+    else{C.pat-=3;setFace('worry',1.2);say(pick(['？？？','你在说什么蛙话……','我是不是老了，听不懂。','……啊对对对。']));addFT('没接住梗',180,280,'#ffffff',16,1);track('chat_meme',{ok:0});}}
   else if(ok){C.pat=Math.min(100,C.pat+8);C.chatTip+=5;setFace('happy',1.2);say(pick(['哈哈，你真会说话！','有意思，下次还找你。']));sfx.coin();addFT('聊天小费 +¥5',180,280,'#f5c95c',18,1);}
   else{C.pat-=8;setFace('angry',1.2);say(pick(['……不聊了。','你这人说话真噎人。']));sfx.bad();}
   C.chatT=9+Math.random()*6;
@@ -1728,22 +1742,22 @@ function showShop(){
   const sc=$('panel').scrollTop;
   let body='';
   if(shopTab==='tool'){
-    body=UPG.filter(u=>UNLOCK[u.svc]<=Math.max(S.realDay||S.day,1)).map(u=>{const t=tierOf(u),max=t>=TIERS,b=brOf(u),sn=STEPS[u.svc].n;
+    body=UPG.filter(u=>UNLOCK[u.svc]<=Math.max(S.realDay||S.day,1)).map(u=>{const t=tierOf(u),max=t>=TIERS,b=brOf(u);
       const pips=`<div class="pips">${Array.from({length:TIERS},(_,i)=>`<i class="${i<t?'on':''}${i===FORK?' fork':''}"></i>`).join('')}</div>`;
       const pct=x=>Math.round(x*100);
       if(t===FORK){
-        const opt=r=>{const R=ROUTE[r],c=upCost(u,t);return `<div class="route r${r}"><div><b>${R.tag} · ${u[r].lv[0]}</b><span>${u[r].lv.join(' → ')}</span><span>✔ ${R.pro}${r==='A'?`「${u.A.skill}」`:''}</span><span class="con">✘ ${R.con}</span></div><button class="buy" data-u="${u.id}" data-br="${r}" ${S.coins<c?'data-poor="1"':''}>¥${c}</button></div>`;};
-        return `<div class="item fork"><b>${u.n} · ${tierName(u,t)}</b><span class="d">下一档要选路线，选了以后可以花钱换：</span>${opt('A')}${opt('B')}${pips}</div>`;}
+        const opt=r=>{const R=ROUTE[r],c=upCost(u,t);return `<div class="route r${r}"><div><b>${R.tag} · ${u[r].lv[0]}</b><span>${R.pro}</span><span>升满变「${u[r].lv[2]}」：${R.short(u)}</span><span class="con">缺点：${R.con}</span></div><button class="buy" data-u="${u.id}" data-br="${r}" ${S.coins<c?'data-poor="1"':''}>¥${c}</button></div>`;};
+        return `<div class="item fork"><b>${u.n} · ${tierName(u,t)}</b><span class="d">二选一继续升（以后能花钱换）</span>${opt('A')}${opt('B')}${pips}</div>`;}
       const cost=max?0:upCost(u,t);
       const route=t>FORK?`<span class="rtag r${b}">${ROUTE[b].tag}</span>`:'';
-      const next=max?`<b class="evo">✨ 满级 · ${ROUTE[b].skill(u)}</b><br>${sn}收费 +${pct(payBonus(u.svc))}%`
-        :t<FORK?`下一档：${tierName(u,t+1)} · ${u.d}，${sn}收费 +${pct(PAY0[t+1])}%`
-        :`下一档：${u[b].lv.at(t-FORK)} · ${b==='A'?'手感更快':'收费更高'}，${sn}收费 +${pct(PAY[b].at(t-FORK))}%${t+1>=TIERS?`<br><b class="evo">✨ 满级解锁 · ${ROUTE[b].skill(u)}</b>`:''}`;
-      const sw=t>FORK?`<button class="swbtn" data-sw="${u.id}">换成${ROUTE[b==='A'?'B':'A'].tag} ¥${switchCost(u)}</button>`:'';
+      const next=max?`<b class="evo">✨ 已升满：${ROUTE[b].short(u)}</b><br>这项多赚 ${pct(payBonus(u.svc))}%`
+        :t<FORK?`下一档「${tierName(u,t+1)}」：${u.d}，多赚 ${pct(PAY0[t+1])}%`
+        :`下一档「${u[b].lv.at(t-FORK)}」：${b==='A'?'更快':'更贵'}，多赚 ${pct(PAY[b].at(t-FORK))}%${t+1>=TIERS?`<br><b class="evo">✨ 升满：${ROUTE[b].short(u)}</b>`:''}`;
+      const sw=t>FORK?`<button class="swbtn" data-sw="${u.id}">换成 ${ROUTE[b==='A'?'B':'A'].tag} ¥${switchCost(u)}</button>`:'';
       return `<div class="item"><b>${u.n} · ${tierName(u,t)} ${route}</b><button class="buy" data-u="${u.id}" ${max?'disabled':S.coins<cost?'data-poor="1"':''}>${max?'已满级':'¥'+cost}</button>
       <span class="d">${next}</span>${pips}${sw}</div>`;}).join('')
-      +`<p class="muted">每样工具 5 档，随时能升。第 3 档分两条路：⚡效率（做得快）或 💎品质（收得贵）。</p>`;
-    if(shopEvo){const b=brOf(shopEvo);body=`<div class="evobanner"><b>✨ ${shopEvo.n}升满：「${tierName(shopEvo,TIERS)}」！</b><span>${ROUTE[b].skill(shopEvo)}</span></div>`+body;shopEvo=null;}
+      +`<p class="muted">每样工具 5 档，有钱就能升。第 3 档二选一：⚡做得快，或 💎卖得贵。</p>`;
+    if(shopEvo){const b=brOf(shopEvo);body=`<div class="evobanner"><b>✨ ${shopEvo.n}升满：「${tierName(shopEvo,TIERS)}」！</b><span>${ROUTE[b].short(shopEvo)}</span></div>`+body;shopEvo=null;}
   }else body=decoShopHtml();
   open(`<h2>商店</h2><p class="muted">钱包 <b style="color:var(--sign);font-size:16px">¥${S.coins}</b></p>
   <div class="tabs"><button class="tabb ${shopTab==='tool'?'on':''}" data-tab="tool">工具</button><button class="tabb ${shopTab==='deco'?'on':''}" data-tab="deco">装修</button></div>
