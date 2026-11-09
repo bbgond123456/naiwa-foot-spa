@@ -499,6 +499,11 @@ i.hh.off{filter:grayscale(1);opacity:.28}
 
 /* 聊天选项要压在客人说话气泡上面，不然按钮被挡 */
 .chat{z-index:7}
+
+.shop .sts{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0}
+.shop .sts .st{font:600 11px/1 inherit;padding:3px 5px;border-radius:6px;background:rgba(0,0,0,.06);white-space:nowrap}
+.shop .route.rA .st:first-child{background:rgba(90,167,232,.2);color:#1d5b93}
+.shop .route.rB .st:last-child{background:rgba(224,167,46,.25);color:#7a4a08}
 </style>
 
 <div id="app">
@@ -607,7 +612,7 @@ const UPG=[
    B:{lv:['金粉画笔','狼毫笔','大师画笔']}}
 ];
 const ROUTE={A:{tag:'⚡ 做得快',skill:u=>u.A.skill,short:u=>u.A.skill.split('：').at(-1),pro:'每升一档，做得更快',con:'加价少（最多 +30%）'},
-             B:{tag:'💎 卖得贵',skill:()=>'慢工细活：做这项时客人耐心不会自己往下掉（做错照扣）',short:()=>'做这项时客人不掉耐心',pro:'每升一档，收费更高（最多 +65%）',con:'不再变快'}};
+             B:{tag:'💎 卖得贵',skill:()=>'慢工细活：做这项时客人耐心不会自己往下掉（做错照扣）',short:()=>'做这项时不掉耐心',pro:'每升一档，收费更高（最多 +65%）',con:'不再变快'}};
 const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:380,fish:420,wax:460,moxa:500,art:550};
 const TIERS=5,FORK=2;                       // 0→1→2 公共，2→3 时选路线
 const TIER_MULT=[.4,.9,1.7,2.8,4.2];         // 从第 t 档升到 t+1 档的价格 × 基础价
@@ -1744,19 +1749,21 @@ function showShop(){
   if(shopTab==='tool'){
     body=UPG.filter(u=>UNLOCK[u.svc]<=Math.max(S.realDay||S.day,1)).map(u=>{const t=tierOf(u),max=t>=TIERS,b=brOf(u);
       const pips=`<div class="pips">${Array.from({length:TIERS},(_,i)=>`<i class="${i<t?'on':''}${i===FORK?' fork':''}"></i>`).join('')}</div>`;
-      const pct=x=>Math.round(x*100);
+      const pct=x=>Math.round(x*100),spd=p=>Math.round(p/3*100);      // 手感：满档 = 100%
+      const pw=(r,k)=>k<=FORK?k:POWER[r].at(k-FORK-1),py=(r,k)=>k<=FORK?PAY0.at(k):PAY[r].at(k-FORK-1);
+      const stats=(r,k0,k1)=>{const a=spd(pw(r,k0)),z=spd(pw(r,k1)),c=pct(py(r,k0)),d=pct(py(r,k1));
+        return `<span class="st">手感 ${a===z?a+'% 封顶':a+'→'+z+'%'}</span><span class="st">收费 +${c===d?c:c+'→'+d}%</span>`;};
       if(t===FORK){
-        const opt=r=>{const R=ROUTE[r],c=upCost(u,t);return `<div class="route r${r}"><div><b>${R.tag} · ${u[r].lv[0]}</b><span>${R.pro}</span><span>升满变「${u[r].lv[2]}」：${R.short(u)}</span><span class="con">缺点：${R.con}</span></div><button class="buy" data-u="${u.id}" data-br="${r}" ${S.coins<c?'data-poor="1"':''}>¥${c}</button></div>`;};
-        return `<div class="item fork"><b>${u.n} · ${tierName(u,t)}</b><span class="d">二选一继续升（以后能花钱换）</span>${opt('A')}${opt('B')}${pips}</div>`;}
+        const opt=r=>{const c=upCost(u,t);return `<div class="route r${r}"><div><b>${ROUTE[r].tag} · ${u[r].lv[0]}</b><span class="sts">${stats(r,t,TIERS)}</span><span>满级：${ROUTE[r].short(u)}</span></div><button class="buy" data-u="${u.id}" data-br="${r}" ${S.coins<c?'data-poor="1"':''}>¥${c}</button></div>`;};
+        return `<div class="item fork"><b>${u.n} · ${tierName(u,t)}</b><span class="d">二选一（可花钱换）</span>${opt('A')}${opt('B')}${pips}</div>`;}
       const cost=max?0:upCost(u,t);
       const route=t>FORK?`<span class="rtag r${b}">${ROUTE[b].tag}</span>`:'';
-      const next=max?`<b class="evo">✨ 已升满：${ROUTE[b].short(u)}</b><br>这项多赚 ${pct(payBonus(u.svc))}%`
-        :t<FORK?`下一档「${tierName(u,t+1)}」：${u.d}，多赚 ${pct(PAY0[t+1])}%`
-        :`下一档「${u[b].lv.at(t-FORK)}」：${b==='A'?'更快':'更贵'}，多赚 ${pct(PAY[b].at(t-FORK))}%${t+1>=TIERS?`<br><b class="evo">✨ 升满：${ROUTE[b].short(u)}</b>`:''}`;
+      const next=max?`<span class="sts"><span class="st">手感 ${spd(pw(b,t))}%</span><span class="st">收费 +${pct(payBonus(u.svc))}%</span></span><b class="evo">✨ ${ROUTE[b].short(u)}</b>`
+        :`<span class="sts">${stats(b,t,t+1)}</span>下一档「${tierName(u,t+1)}」${t+1>=TIERS?`<br><b class="evo">✨ 满级：${ROUTE[b].short(u)}</b>`:''}`;
       const sw=t>FORK?`<button class="swbtn" data-sw="${u.id}">换成 ${ROUTE[b==='A'?'B':'A'].tag} ¥${switchCost(u)}</button>`:'';
       return `<div class="item"><b>${u.n} · ${tierName(u,t)} ${route}</b><button class="buy" data-u="${u.id}" ${max?'disabled':S.coins<cost?'data-poor="1"':''}>${max?'已满级':'¥'+cost}</button>
       <span class="d">${next}</span>${pips}${sw}</div>`;}).join('')
-      +`<p class="muted">每样工具 5 档，有钱就能升。第 3 档二选一：⚡做得快，或 💎卖得贵。</p>`;
+      +`<p class="muted">手感 100% = 最快；收费是这项比原价多收多少。</p>`;
     if(shopEvo){const b=brOf(shopEvo);body=`<div class="evobanner"><b>✨ ${shopEvo.n}升满：「${tierName(shopEvo,TIERS)}」！</b><span>${ROUTE[b].short(shopEvo)}</span></div>`+body;shopEvo=null;}
   }else body=decoShopHtml();
   open(`<h2>商店</h2><p class="muted">钱包 <b style="color:var(--sign);font-size:16px">¥${S.coins}</b></p>
