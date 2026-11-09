@@ -602,7 +602,7 @@ const UPG=[
    B:{lv:['金粉画笔','狼毫笔','大师画笔']}}
 ];
 const ROUTE={A:{tag:'⚡ 效率',skill:u=>u.A.skill,pro:'手感继续变快，满级解锁进化技能',con:'收费最多只 +30%'},
-             B:{tag:'💎 品质',skill:()=>'慢工细活：做这项时客人耐心不掉',pro:'收费最多 +65%，满级「慢工细活」',con:'手感停在 2 档，不再变快'}};
+             B:{tag:'💎 品质',skill:()=>'慢工细活：做这项时客人耐心不会自己往下掉（做错照扣）',pro:'收费最多 +65%，满级「慢工细活」',con:'手感停在 2 档，不再变快'}};
 const TOOL_BASE={soak:80,scrub:80,trim:130,peel:200,massage:290,paint:330,mask:380,fish:420,wax:460,moxa:500,art:550};
 const TIERS=5,FORK=2;                       // 0→1→2 公共，2→3 时选路线
 const TIER_MULT=[.4,.9,1.7,2.8,4.2];         // 从第 t 档升到 t+1 档的价格 × 基础价
@@ -1043,8 +1043,8 @@ function cfg(d){
 const busyK=d=>d>=7?1.2:d>=3?1.1:1;
 /* 后期单子变短（每单平均 3→2.5/2.75 项），每项加价补回来，收入和过关目标不变 */
 const payK=d=>busyK(d)*(d>=20?3/2.75:d>=12?3/2.5:1);
-/* 第三章目标 ×1.3→×1.2：休闲玩家第三章大多只拿 1 星；第 30 关以后（无尽营业）目标不再上涨 */
-const goalFor=d=>{d=Math.min(d,30);return Math.round(cfg(d).count*(38+d*6)*(d<=2?1:d<=10?1.25:1.2)*busyK(d)/10)*10;};
+/* 第三章目标 ×1.3→×1.2→×1.1：升级收费下调后，休闲玩家第 21–29 关全是 1 星；第 30 关以后（无尽营业）目标不再上涨 */
+const goalFor=d=>{d=Math.min(d,30);return Math.round(cfg(d).count*(38+d*6)*(d<=2?1:d<=10?1.25:d<=20?1.2:1.1)*busyK(d)/10)*10;};
 /* 店长帮忙：同一关连续没过 2 次起，客人更有耐心、1 星目标降低（3 星不变） */
 let assistLv=0;
 const failCount=lv=>(S.fails&&S.fails[lv])||0;
@@ -2493,7 +2493,7 @@ function bmNew(id){
 const BMm=()=>bossRun&&bossRun.m||null;
 function bmSat(d,txt,x,y){C.pat=clamp(C.pat+d,0,100);addFT(`${txt} ${d>0?'+':d<0?'−':''}${d?Math.abs(d):''}`.trim(),x||180,y||300,d>0?'#b8f5c0':d<0?'#ff8a80':'#ffffff',16,1);renderTicket();}
 function bmBegin(){const m=BMm();if(!m)return;const cc=C;
-  if(m.k==='race')setTimeout(()=>{if(C===cc&&!C.done){say('阿汤，开始！让他们看看温泉山庄的手艺。');addFT('比拼开始！',180,110,'#ffd58a',22,1);sfx.croak();}},900);
+  if(m.k==='race')setTimeout(()=>{if(C===cc&&!C.done){say('阿汤，开始！让他们看看温泉山庄的手艺。');addFT('比拼开始！',180,110,'#ffd58a',22,1);if(assistLv)addFT(`阿汤昨晚没睡好，手慢了 ${assistLv*15}%`,180,140,'#b8f5c0',15,1);sfx.croak();}},900);
 }
 function bmBusy(){const m=BMm();return !!m&&((m.k==='pick'&&!!m.phase)||(m.k==='court'&&!!m.bow));}
 function bmAfterFinish(step,q){
@@ -2571,7 +2571,7 @@ function bmUpdate(dt,t){
       else if(b.t<=0){m.bow=null;m.bowedFor=C.si;bmSat(-8,'失礼',180,300);setFace('angry',1.2);say('放肆！……罢了，开始吧。');sfx.bad();shake=.3;startMini(b.tool);}}
   }
   if(m.k==='race'&&!m.end){
-    m.rt+=dt;const h=rivalDone(m);
+    m.rt+=dt*(1-.15*assistLv);const h=rivalDone(m);/* 店长帮忙：同一关连输 2 次起，阿汤每档慢 15% */
     if(h>m.hers){m.hers=h;const s=C.steps[h-1];addFT(`阿汤做完了「${STEPS[s]?STEPS[s].n:''}」`,180,52,'#ffd58a',14,1);tone(392,523,.08,'square',.03);}
     if(m.hers>=C.steps.length&&C.si<C.steps.length){m.end='lose';bmSat(-6,'阿汤先做完了',180,300);say('瞧见没？阿汤已经做完全套了。');setFace('angry',1);sfx.bad();}
   }
